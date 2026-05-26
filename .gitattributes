@@ -1,0 +1,19 @@
+# Shell scripts must use LF inside containers
+*.sh text eol=lf
+
+# Python / YAML / Markdown normalize to LF
+*.py text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.md text eol=lf
+
+# Windows batch / PowerShell keep CRLF
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary

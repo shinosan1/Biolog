@@ -1,0 +1,36 @@
+# SQLite
+*.db
+*.db-wal
+*.db-shm
+data/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Environment & secrets
+.env
+.env.local
+docker-compose.override.yml
+.streamlit/secrets.toml
+
+# Logs
+logs/
+*.log
+last_report.txt
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 開発メモ（公開しない）
+*prompt.md
+Biolog_prompt.md
+.claude/
+plans/
+
+# Internal development artifacts
+biolog_streamlit/backup/
+biolog_streamlit/plan/

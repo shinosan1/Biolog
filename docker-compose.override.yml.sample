@@ -1,0 +1,16 @@
+# BioLog docker-compose 上書きサンプル
+# 個人環境固有の設定（既存 DB パス・ポート変更等）はここに書く。
+# このファイルをコピーして `docker-compose.override.yml` として使う。
+# `docker-compose.override.yml` は .gitignore で除外されます。
+
+services:
+  biolog-api:
+    volumes:
+      # Windows 例
+      - D:/AI/biolog/data:/data
+    # ports:
+    #   - "18766:8766"   # ホスト側ポートを変更したい場合
+
+  biolog-streamlit:
+    # ports:
+    #   - "18501:8501"

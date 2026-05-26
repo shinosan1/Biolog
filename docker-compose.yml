@@ -1,0 +1,22 @@
+services:
+  biolog-api:
+    build: ./biolog_api
+    container_name: biolog-api
+    ports:
+      - "8766:8766"
+    volumes:
+      - ${BIOLOG_DATA_DIR:-./data}:/data
+    environment:
+      - DATABASE_PATH=/data/biolog.db
+    restart: unless-stopped
+
+  biolog-streamlit:
+    build: ./biolog_streamlit
+    container_name: biolog-streamlit
+    ports:
+      - "8501:8501"
+    environment:
+      - BIOLOG_API_URL=http://biolog-api:8766
+    depends_on:
+      - biolog-api
+    restart: unless-stopped
