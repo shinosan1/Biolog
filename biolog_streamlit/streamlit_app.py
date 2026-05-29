@@ -25,13 +25,19 @@ st.set_page_config(page_title="BioLog", layout="wide")
 st.title("BioLog — 家族健康記録")
 
 
+if "data_version" not in st.session_state:
+    st.session_state.data_version = int(time.time())
+
+
 @st.cache_data
-def fetch_range_data(start: str, end: str):
+def fetch_range_data(start: str, end: str, version: int):
+    # version is intentionally unused for cache invalidation
     return api_get("/api/health/records/range", params={"start": start, "end": end})
 
 
 @st.cache_data
-def fetch_latest(uid: str):
+def fetch_latest(uid: str, version: int):
+    # version is intentionally unused for cache invalidation
     return api_get(f"/api/health/records/latest/{uid}", suppress_404=True)
 
 
@@ -172,8 +178,7 @@ with st.sidebar:
 
     st.divider()
     if st.button("更新"):
-        fetch_latest.clear()
-        fetch_range_data.clear()
+        st.session_state.data_version += 1
         st.rerun()
 
     st.caption("※ データは非同期で反映されます。表示が更新されない場合は「更新」を押してください。")
@@ -190,7 +195,7 @@ card_cols = st.columns(3)
 for i, uid in enumerate(USER_IDS):
     with card_cols[i]:
         st.markdown(f"### {USER_LABELS[uid]}")
-        latest = fetch_latest(uid)
+        latest = fetch_latest(uid, st.session_state.data_version)
         if latest:
             st.metric("体重",       f"{latest['weight']:.1f} kg"         if latest.get("weight")        is not None else "—")
             st.metric("体温",       f"{latest['temperature']:.1f} ℃"    if latest.get("temperature")  is not None else "—")
@@ -219,7 +224,7 @@ with tab_graph:
     if not selected_users:
         st.info("サイドバーでユーザーを1人以上選択してください。")
     else:
-        data = fetch_range_data(str(date_start), str(date_end))
+        data = fetch_range_data(str(date_start), str(date_end), st.session_state.data_version)
 
         if not data:
             st.info("データがありません")
@@ -409,7 +414,7 @@ with tab_list:
 with tab_create:
     st.subheader("新規登録")
 
-    with st.form("create_form"):
+    with st.form("create_form", clear_on_submit=True):
         c1, c2 = st.columns(2)
         with c1:
             form_user = st.selectbox(
@@ -485,9 +490,8 @@ with tab_create:
 
         result = api_post("/api/health/record", body)
         if result:
-            st.success("登録を受け付けました（反映には数秒かかる場合があります）")
-            fetch_latest.clear()
-            fetch_range_data.clear()
+            st.success("登録しました。最新データを更新しています。")
+            st.session_state.data_version += 1
             st.rerun()
 
 
@@ -577,8 +581,7 @@ with tab_edit:
                 result = api_put(f"/api/health/record/{rec['id']}", body)
                 if result:
                     st.success(f"更新完了 — {edit_date} ({USER_LABELS[edit_user]})")
-                    fetch_latest.clear()
-                    fetch_range_data.clear()
+                    st.session_state.data_version += 1
                     st.rerun()
 
     st.divider()
@@ -610,8 +613,7 @@ with tab_edit:
             if result:
                 st.success(f"削除完了 — ID: {result.get('id')}")
                 st.session_state["clear_del_id"] = True
-                fetch_latest.clear()
-                fetch_range_data.clear()
+                st.session_state.data_version += 1
                 st.rerun()
     else:
         if delete_id is not None:

@@ -17,6 +17,26 @@ BioLog プロジェクトの全変更履歴です。
 
 ---
 
+## [1.5.7] — 2026-05-29
+
+### Fixed
+- **新規登録後にサマリーカード / グラフ / 一覧に前日データが残る不具合**
+  - 原因：`fetch_*.clear()` 方式では Eventual Consistency ラグ等で stale な fetch がキャッシュされる場合があった
+  - 対応：`@st.cache_data` の cache key に `version: int` 引数を追加し、書き込み成功時に `st.session_state.data_version += 1` で明示 invalidate する方式に変更
+- **新規登録フォームに前回入力値が残る不具合**
+  - `with st.form("create_form")` に `clear_on_submit=True` を追加し、submit 後に全フィールドを自動リセット
+
+### Changed
+- `fetch_latest(uid)` → `fetch_latest(uid, version)`、`fetch_range_data(start, end)` → `fetch_range_data(start, end, version)`
+- 全 4 箇所（「更新」ボタン / 新規登録 / 編集 / 削除）の `fetch_latest.clear()` / `fetch_range_data.clear()` を `st.session_state.data_version += 1` に置換
+- `session_state.data_version` の初期値を **`int(time.time())`** にし、v1.5.5 で fix した「翌日跨ぎ cache 衝突」問題が再発しないように保証
+- 新規登録成功時のメッセージを「登録を受け付けました（反映には数秒かかる場合があります）」から「**登録しました。最新データを更新しています。**」に変更（version 機構で即時反映されるため）
+
+### Note
+- v1.5.5 で廃止した version 引数方式を再導入する形になるが、初期値を `int(time.time())` にすることで「新セッションで `version=0` リセット → 過去 cache `(uid, 0)` に衝突」という v1.5.5 当時の問題は構造的に発生しない
+
+---
+
 ## [1.5.6] — 2026-05-26
 
 ### Fixed
