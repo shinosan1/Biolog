@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>BioLog — Claude Code と作った家族健康記録アプリ</title>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/atom-one-dark.css">
+
+  <style>
+    .reveal { font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif; }
+    .reveal h1 { font-size: 2.2em; }
+    .reveal h2 { font-size: 1.6em; color: #4FC3F7; }
+    .reveal h3 { font-size: 1.2em; color: #81D4FA; }
+    .reveal p, .reveal li { font-size: 0.85em; line-height: 1.6; }
+    .reveal pre { font-size: 0.45em; }
+    .reveal code { background: #1a1a1a; padding: 2px 6px; border-radius: 3px; }
+    .reveal .small { font-size: 0.6em; color: #999; }
+    .reveal .tag { display: inline-block; background: #2196F3; color: white; padding: 2px 10px; border-radius: 12px; font-size: 0.5em; margin: 0 4px; }
+    .reveal .tag.fix { background: #F44336; }
+    .reveal .tag.feat { background: #4CAF50; }
+    .reveal .tag.refactor { background: #FF9800; }
+    .reveal .center { text-align: center; }
+    .reveal .lead { font-size: 1.1em; color: #ddd; }
+    .reveal .two-col { display: flex; gap: 30px; }
+    .reveal .col { flex: 1; }
+    .reveal table { font-size: 0.55em; margin: 0.5em auto; }
+    .reveal table th { background: #263238; color: #4FC3F7; }
+    .reveal blockquote { font-style: normal; border-left: 4px solid #4FC3F7; padding: 8px 16px; background: rgba(79, 195, 247, 0.08); font-size: 0.8em; }
+    .reveal .footnote { font-size: 0.45em; color: #777; margin-top: 1em; }
+  </style>
+</head>
+<body>
+
+<div class="reveal">
+<div class="slides">
+
+<section>
+  <h1>BioLog</h1>
+  <p class="lead">家族の健康データを記録する自宅 OSS アプリを<br>
+  Claude Code と共に開発・公開した話</p>
+  <p class="small">
+    Streamlit + FastAPI + SQLite, Self-hosted, LAN-only by design<br>
+    2026-05-29
+  </p>
+</section>
+
+<section>
+  <h2>本日のお話</h2>
+  <ol>
+    <li>なぜ作ったか — 動機と要件</li>
+    <li>アーキテクチャと設計原則</li>
+    <li>開発ストーリー — Phase 1〜4</li>
+    <li>キャッシュ設計の試行錯誤</li>
+    <li>公開準備 — 個人プロジェクトを OSS に</li>
+    <li>失敗から学んだこと</li>
+    <li>Claude Code との協業</li>
+  </ol>
+</section>
+
+<section>
+  <h2>動機</h2>
+  <blockquote>
+    家族（自分 / 父 / 母）の<br>
+    <strong>体温・血圧・脈拍・体重・食事ログ・行動ログ</strong>を<br>
+    日次で記録・可視化したい。
+  </blockquote>
+  <p>必要なもの:</p>
+  <ul>
+    <li>ローカル完結（外部サーバにデータ送信しない）</li>
+    <li>Docker 1 コマンドで起動</li>
+    <li>SQLite 単一ファイルで完結</li>
+    <li>スマホからもアクセス可（LAN 内）</li>
+  </ul>
+</section>
+
+<section>
+  <h2>構成</h2>
+  <pre><code class="language-text">┌────────────────┐    HTTP    ┌──────────────────┐
+│ Streamlit (8501)│ ─────────►│ FastAPI (8766)   │
+│ - UI            │            │ - POST/PUT/DELETE│
+│ - read cache    │            │ - GET (biocore)  │
+└────────────────┘            └──────┬───────────┘
+                                     │ Queue
+                                     ▼
+                             ┌──────────────────┐
+                             │ Worker (1 thread)│
+                             │ - 単一 Writer    │
+                             └──────┬───────────┘
+                                    ▼
+                             ┌──────────────────┐
+                             │ SQLite           │
+                             │ /data/biolog.db  │
+                             └──────────────────┘</code></pre>
+  <p class="small">2 コンテナで完結（API + UI）</p>
+</section>
+
+<section>
+  <h2>設計原則</h2>
+  <div class="two-col">
+    <div class="col">
+      <h3>守るべき制約</h3>
+      <ul>
+        <li>書き込みは Worker 1 本</li>
+        <li><code>sqlite3.connect()</code> は db_manager のみ</li>
+        <li><code>PRAGMA journal_mode=WAL</code> 禁止</li>
+        <li>FastAPI 内で DB 直接操作禁止</li>
+        <li>Streamlit から DB 直接アクセス禁止</li>
+      </ul>
+    </div>
+    <div class="col">
+      <h3>なぜ SQLite?</h3>
+      <ul>
+        <li>ファイル 1 つ。バックアップは <code>cp</code></li>
+        <li>別 DB サーバ不要</li>
+        <li>家族規模なら年間数千件</li>
+        <li>Windows NTFS で WAL は I/O エラー → DELETE モード強制</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>開発の道のり</h2>
+  <table>
+    <tr><th>Phase</th><th>内容</th><th>タグ</th></tr>
+    <tr><td>H1</td><td>Streamlit 起動ブロッカー修正</td><td><span class="tag fix">FIX</span></td></tr>
+    <tr><td>H2</td><td>migration に CREATE TABLE 追加</td><td><span class="tag feat">FEAT</span></td></tr>
+    <tr><td>H3</td><td>entrypoint.sh で migration 自動化</td><td><span class="tag feat">FEAT</span></td></tr>
+    <tr><td>H4</td><td>API ログの PII マスク</td><td><span class="tag feat">FEAT</span></td></tr>
+    <tr><td>—</td><td>cache invalidation 刷新（v1.5.5〜v1.5.7）</td><td><span class="tag refactor">REFACTOR</span></td></tr>
+    <tr><td>—</td><td>公開準備 — README / LICENSE / 仕様書</td><td><span class="tag feat">FEAT</span></td></tr>
+  </table>
+  <p class="small">いずれも plan mode で方針を固めてから実装</p>
+</section>
+
+<section>
+  <h2>Phase 1 — 起動ブロッカー修正</h2>
+  <p>監査で発覚：Streamlit が <strong>SyntaxError で起動不能</strong></p>
+  <pre><code class="language-python">def is_truncated(full: str, limit: int) -> bool:
+    return len(full) > limit
+    except Exception as e:   # ← orphan!
+        st.error(f"API エラー: {e}")
+        return None</code></pre>
+  <p>原因：以前のリファクタで <code>api_get()</code> の 2 段 except 構造の片方が孤立したまま残った</p>
+  <p class="footnote">教訓：「動いている」と「壊れていない」は別物。静的解析と実機検証は両輪。</p>
+</section>
+
+<section>
+  <h2>Phase 2 — DB スキーマ補完</h2>
+  <p>migration ファイルに <strong>CREATE TABLE 自体が無かった</strong>（ALTER のみ）</p>
+  <p>新規環境では「テーブル不在」で API 起動失敗。</p>
+  <h3>採用した解：CREATE と ALTER の併存構造</h3>
+  <blockquote>
+    CREATE TABLE と ALTER TABLE は <strong>冗長ではなく</strong><br>
+    環境差吸収のための <strong>必須構造</strong>。<br>
+    削除・統合は禁止。
+  </blockquote>
+  <ul>
+    <li>既存 DB ← ALTER のみが意味を持つ</li>
+    <li>新規 DB ← CREATE のみが意味を持つ</li>
+    <li>両方残すことで両環境を 1 ファイルでカバー</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Phase 3 — entrypoint.sh で migration 自動化</h2>
+  <pre><code class="language-bash">#!/bin/sh
+set -e
+
+echo "[entrypoint] running migrations..."
+python migrations/runner.py
+echo "[entrypoint] migrations complete, starting API..."
+
+exec uvicorn api:app --host 0.0.0.0 --port 8766</code></pre>
+  <ul>
+    <li><code>set -e</code> + 直列実行で migration 失敗時は API 起動を阻止</li>
+    <li><code>exec uvicorn</code> で PID 1 を引き継ぎ SIGTERM 正常伝搬</li>
+    <li>「手動 migration 忘れ」を構造的に排除</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Phase 4 — API ログの PII マスク</h2>
+  <p>監査で発覚：<code>docker logs biolog-api</code> に <code>user_id</code> / <code>request_id</code> / UUID / email が平文出力</p>
+  <pre><code class="language-python">def mask_pii(text: str) -> str:
+    if text is None:
+        return ""
+    text = str(text)
+    for pattern, repl in _PATTERNS:
+        text = pattern.sub(repl, text)
+    return text</code></pre>
+  <p>たった 1 行追加で全ログにマスクが効く設計：</p>
+  <pre><code class="language-python">print(mask_pii(json.dumps(entry, ensure_ascii=False)), flush=True)</code></pre>
+</section>
+
+<section>
+  <h2>Cache invalidation の試行錯誤</h2>
+  <table>
+    <tr><th>バージョン</th><th>方式</th><th>問題</th></tr>
+    <tr><td>v1.3.8</td><td>version 引数 + session_state（init=0）</td><td>翌日跨ぎで <code>(uid, 0)</code> 衝突 → 前日値</td></tr>
+    <tr><td>v1.5.5</td><td><code>fetch_*.clear()</code> + rerun</td><td>EC ラグで stale 取得</td></tr>
+    <tr><td>v1.5.7</td><td>version 引数（init=<code>int(time.time())</code>）</td><td>翌日跨ぎ衝突を構造的に回避</td></tr>
+  </table>
+  <p class="footnote">「失敗 → 別解 → 旧解の修正版」のループ。Claude との対話で <strong>毎回設計上の差分を言語化</strong> したのが効いた。</p>
+</section>
+
+<section>
+  <h2>Cache invalidation 確定形 (v1.5.7)</h2>
+  <pre><code class="language-python">if "data_version" not in st.session_state:
+    st.session_state.data_version = int(time.time())
+
+@st.cache_data
+def fetch_latest(uid: str, version: int):
+    # version is intentionally unused for cache invalidation
+    return api_get(f"/api/health/records/latest/{uid}", ...)
+
+# 書き込み成功時
+st.session_state.data_version += 1
+st.rerun()</code></pre>
+  <ul>
+    <li>init を <code>int(time.time())</code> → 翌日跨ぎ衝突を構造的に排除</li>
+    <li><code>fetch_*.clear()</code> は使わない（version 更新で代替）</li>
+    <li><code>clear_on_submit=True</code> で form 自動リセット</li>
+  </ul>
+</section>
+
+<section>
+  <h2>公開準備 — OSS としての作法</h2>
+  <div class="two-col">
+    <div class="col">
+      <h3>取り組んだこと</h3>
+      <ul>
+        <li>個人パスの完全除去</li>
+        <li><code>.env</code> 化（hardcode 撤廃）</li>
+        <li>LICENSE (MIT) + 免責事項</li>
+        <li>README に <strong>「Not For」</strong> 章</li>
+        <li>Known Issues / Untested 明示</li>
+        <li><code>.gitattributes</code> で改行コード固定</li>
+      </ul>
+    </div>
+    <div class="col">
+      <h3>方針</h3>
+      <ul>
+        <li>問題を隠さない</li>
+        <li>未検証範囲を明示する</li>
+        <li>LAN 内専用と明記する</li>
+        <li>SQLite の前提を正直に書く</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>失敗 ① — データ消失 × 2</h2>
+  <p>公開準備中、AI（私）が破壊的操作を 2 度実行：</p>
+  <ol>
+    <li><strong>docker-compose.yml の volume パス変更</strong><br>
+        <span class="small">env 化と同時にデフォルト値変更 → container が新しい空ディレクトリをマウント</span></li>
+    <li><strong>動作中の <code>.env</code> を削除</strong><br>
+        <span class="small">「.gitignore で守られているのに念のため削除」という過剰判断</span></li>
+  </ol>
+  <p class="lead center">どちらもバックアップで救出 🙇</p>
+  <p class="footnote center">教訓：<strong>.gitignore で守られているなら物理削除は不要</strong>。破壊的操作は事前確認が絶対。</p>
+</section>
+
+<section>
+  <h2>失敗 ② — ドキュメント漏れ</h2>
+  <p>公開後にユーザーが気付いた：</p>
+  <blockquote>「食事ログや行動ログの情報が全体的に抜けてます」</blockquote>
+  <p>コード側（worker / biocore / schemas / migrate / UI）は完全対応。<br>
+     <strong>しかし API リファレンス skills.md だけ取り残されていた。</strong></p>
+  <p class="footnote">教訓：「コード = 仕様」ではない。OSS では <strong>ドキュメントも一次成果物</strong>。</p>
+</section>
+
+<section>
+  <h2>Claude との協業</h2>
+  <h3>Plan Mode を徹底活用</h3>
+  <ul>
+    <li>実装前に必ず方針を <strong>プランファイル</strong> に書き出す</li>
+    <li>採用方針・触らないもの・触るもの・検証手順を明示</li>
+    <li>「禁止事項」が地味に効く（暴走防止）</li>
+  </ul>
+  <h3>反復改善のリズム</h3>
+  <ul>
+    <li>plan → reject → 修正版 → reject → … → approve</li>
+    <li>1 イテレーション当たりの差分は小さい</li>
+    <li>毎回 <strong>なぜ前案がダメか</strong> を言語化</li>
+  </ul>
+</section>
+
+<section>
+  <h2>AI と作るときに効いたこと</h2>
+  <ul>
+    <li><strong>「動かす AI」ではなく「議論する AI」として使う</strong></li>
+    <li>毎回 <strong>「なぜそうするのか」</strong> を AI に説明させる</li>
+    <li>AI の判断ミスは <strong>こちらが気付いて止める</strong>（過剰判断・推測ベース）</li>
+    <li><strong>破壊的操作は必ず人間が確認</strong>（特に DB / .env / volume）</li>
+    <li>監査・テスト・公開準備など <strong>「機械的だが知識量必要」</strong> な作業に強い</li>
+  </ul>
+  <p class="footnote">AI ペアプロは「副操縦士」。判断責任は人間側に残る。</p>
+</section>
+
+<section>
+  <h2>公開</h2>
+  <ul>
+    <li>📦 GitHub Public Repository</li>
+    <li>📜 MIT License + 日本語免責事項</li>
+    <li>🏷 v0.1.0 タグ付き Release</li>
+    <li>📖 README / 仕様書 / 操作説明書 / API リファレンス / CHANGELOG</li>
+    <li>🖼 スクリーンショット（ダミーデータ）</li>
+  </ul>
+  <p class="lead center">「ローカル完結型 self-host OSS」として<br>
+  他の人が <code>git clone</code> → <code>docker compose up</code> できる状態に。</p>
+</section>
+
+<section>
+  <h2>まとめ</h2>
+  <ul>
+    <li>個人プロジェクトでも <strong>監査 → 修正 → 公開準備</strong> のサイクルは効く</li>
+    <li>SQLite + 単一 Writer は個人/家族規模で十分強力</li>
+    <li>Eventual Consistency を許容するなら <strong>UX 文言で補正</strong> する</li>
+    <li>cache invalidation は「失敗 → 別解 → 旧解の修正版」を恐れない</li>
+    <li>AI との協業は <strong>plan mode + 議論</strong> が肝</li>
+  </ul>
+  <p class="lead center">家族の健康記録から、OSS 公開まで。<br>
+  小さく・正直に・継続的に。</p>
+</section>
+
+<section>
+  <h1 class="center">Thank You</h1>
+  <p class="center lead">BioLog — Personal & family health record tracker</p>
+  <p class="center small">
+    GitHub: <code>github.com/shinosan1/biolog</code><br>
+    License: MIT (LAN-only by design)<br>
+    Built with Claude Code 🤖
+  </p>
+</section>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
+
+<script>
+  Reveal.initialize({
+    hash: true,
+    slideNumber: 'c/t',
+    controls: true,
+    progress: true,
+    transition: 'slide',
+    plugins: [RevealHighlight, RevealNotes]
+  });
+</script>
+
+</body>
+</html>
