@@ -5,9 +5,33 @@ BioLog プロジェクトの全変更履歴です。
 
 ---
 
-## [Unreleased]
+## [1.6.0] — 2026-06-25
 
-次のリリースに向けた作業メモ。
+リファクタリング、テスト基盤追加、表示順整理のリリース。
+
+### Added
+- **pytest 最小テスト基盤を追加**
+  - `requirements-test.txt` を追加し、テスト依存を本番 requirements から分離
+  - `tests/` 配下に Streamlit payload / form field / formatter、API preprocess / schemas、write repository / biocore の回帰テストを追加
+  - テスト用 DB は `tmp_path` 配下の一時 SQLite を使用し、`data/biolog.db` を指した場合は失敗する安全策を追加
+
+### Changed
+- **Streamlit アプリを非破壊分割**
+  - 既存起動入口 `biolog_streamlit/streamlit_app.py` は薄いエントリポイントとして維持
+  - API client、cache、formatter、chart、form field、payload、各 view を分離
+  - UI 文言、API URL、payload 形式、cache clear / rerun のタイミングは維持
+- **新規登録 / 修正フォームの重複を整理**
+  - 測定項目定義を `form_fields.py` に集約
+  - Streamlit 描画を `form_components.py`、payload 作成を `payloads.py` に分離
+  - create/update payload の `None` / 空文字 / `0` / `0.0` / date / request_id の扱いは従来互換
+- **API 書き込み SQL を `write_repository.py` に分離**
+  - `worker.py` は Queue / retry / logging / operation dispatch に集中
+  - `get_connection(write=True)`、transaction、commit/rollback、retry、HTTP response は変更なし
+  - `biocore.py` の SELECT カラム定義と row-to-dict helper を共通化（`SELECT *` の互換箇所は維持）
+- **ホーム / フォーム / グラフの表示順を整理**
+  - ホーム metric: 体重 → 体温 → 収縮期血圧 → 拡張期血圧 → 脈拍
+  - 新規登録 / 修正フォーム: 左側に 体重・体温・収縮期血圧・拡張期血圧、右側に 脈拍・体脂肪率・基礎代謝・筋肉量
+  - グラフ: 体重 → 体温 → 血圧 → 脈拍
 
 ### 残タスク（監査由来）
 - M1: `schemas.py` の `date` に `YYYY-MM-DD` 形式バリデータ追加

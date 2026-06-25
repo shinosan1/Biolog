@@ -1,0 +1,3 @@
+-r biolog_api/requirements.txt
+-r biolog_streamlit/requirements.txt
+pytest==8.3.5

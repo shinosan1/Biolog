@@ -13,6 +13,10 @@ FastAPI / api.py (8766)
 Worker (1スレッド固定)
     │
     ▼
+write_repository.py
+    │  INSERT / UPDATE / DELETE SQL
+    │
+    ▼
 db_manager.py  ← DB への唯一の入口
     │
     ▼
@@ -28,6 +32,37 @@ biolog.db (health_records テーブル)
 | 3 | `PRAGMA journal_mode=WAL` 禁止（Windows NTFS バインドマウント非互換）。必ず `DELETE` |
 | 4 | Worker スレッドは **1本のみ**（並列禁止） |
 | 5 | Queue は **global singleton 1個のみ** |
+| 6 | `write_repository.py` は FastAPI / Queue / worker loop を import しない。SQL 実行のみ |
+
+---
+
+### 1-1. 現在の主要モジュール構成
+
+#### API 側
+
+| ファイル | 責務 |
+|---|---|
+| `api.py` | FastAPI endpoint、HTTP error 変換、worker 起動 |
+| `queue_manager.py` | 書き込み Queue singleton |
+| `worker.py` | Queue 消費、retry、operation dispatch、worker log |
+| `write_repository.py` | `health_records` の INSERT / UPDATE / DELETE SQL |
+| `biocore.py` | 読み取り専用 SELECT |
+| `db_manager.py` | SQLite connection / transaction 境界 |
+| `schemas.py` | Pydantic validation |
+| `preprocess.py` | request_id/date 補完、整数系型補正、blood_pressure 分解 |
+
+#### Streamlit 側
+
+| ファイル | 責務 |
+|---|---|
+| `streamlit_app.py` | 起動入口、sidebar、tab 呼び出し |
+| `api_client.py` | HTTP GET / POST / PUT / DELETE |
+| `cache.py` | `@st.cache_data` 付き取得関数と cache clear |
+| `charts.py` | Matplotlib グラフ描画 |
+| `form_fields.py` | 測定項目定義と表示順 / layout group |
+| `form_components.py` | Streamlit 入力部品の共通描画 |
+| `payloads.py` | create/update payload 作成 |
+| `views/*.py` | summary / graph / list / create / edit の各画面 |
 
 ---
 
@@ -357,6 +392,40 @@ docker logs biolog-api --follow
 
 ---
 
+## 5-1. UI 表示順
+
+### ホーム（直近データ）
+
+各ユーザーカードの metric 表示順:
+
+1. 体重
+2. 体温
+3. 収縮期血圧
+4. 拡張期血圧
+5. 脈拍
+
+### 新規登録 / 修正フォーム
+
+測定項目は `biolog_streamlit/form_fields.py` の `MEASUREMENT_FIELDS` で管理する。
+
+| 左側 | 右側 |
+|---|---|
+| 体重 | 脈拍 |
+| 体温 | 体脂肪率 |
+| 収縮期血圧 | 基礎代謝 |
+| 拡張期血圧 | 筋肉量 |
+
+### グラフ
+
+グラフタブの表示順:
+
+1. 体重
+2. 体温
+3. 血圧（収縮期 / 拡張期を1グラフに統合）
+4. 脈拍
+
+---
+
 ## 6. Pydantic バリデーション範囲まとめ
 
 | フィールド | 単位 | 下限 | 上限 | NULL 許容 |
@@ -414,7 +483,29 @@ Worker が停止しているか、書き込みが詰まっている。`docker lo
 
 ---
 
-## 8. curl コマンド集
+## 8. テスト
+
+開発用テスト依存:
+
+```powershell
+pip install -r requirements-test.txt
+```
+
+回帰テスト:
+
+```powershell
+python -m pytest -q
+```
+
+テスト方針:
+- 実 DB `data/biolog.db` は読み書きしない
+- repository / biocore テストは `tmp_path` 配下の一時 SQLite を使用
+- `DATABASE_PATH` が実 DB を指す場合はテストを失敗させる
+- request_id / date 補完などの変動値は `monkeypatch` で固定する
+
+---
+
+## 9. curl コマンド集
 
 ```powershell
 # 登録（数値のみ）
