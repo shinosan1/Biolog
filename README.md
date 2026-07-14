@@ -330,9 +330,6 @@ docker compose restart biolog-api
 設計上の変更（DB スキーマ・認証導入・アーキテクチャ刷新等）は
 Issues で **設計議論を先に** お願いします。実装 PR を直接送らないでください。
 
-開発ルールは [biolog_streamlit/CLAUDE.md](biolog_streamlit/CLAUDE.md) に
-「絶対に破ってはいけないルール」として記載しています（WAL 禁止、単一 Writer など）。
-
 ---
 
 ## Roadmap（参考）
@@ -354,7 +351,8 @@ Issues で **設計議論を先に** お願いします。実装 PR を直接送
 | [biolog_streamlit/仕様書.md](biolog_streamlit/仕様書.md) | アーキテクチャ・データフロー・整合性モデル |
 | [biolog_streamlit/操作説明書.md](biolog_streamlit/操作説明書.md) | 画面操作手順 |
 | [biolog_api/skills.md](biolog_api/skills.md) | API リファレンス（curl 集） |
-| [biolog_streamlit/CLAUDE.md](biolog_streamlit/CLAUDE.md) | 開発ルール（AI coding agent 向け含む） |
+| [PRIVACY_POLICY.md](PRIVACY_POLICY.md) | プライバシーポリシー |
+| [TERMS_OF_SERVICE.md](TERMS_OF_SERVICE.md) | 利用規約 |
 
 ---
 
