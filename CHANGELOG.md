@@ -7,14 +7,77 @@ BioLog プロジェクトの全変更履歴です。
 
 ## [未リリース]
 
+## [1.7.1] — 2026-07-27
+
+### Fixed
+- `requirements-test.txt`からAPI・Streamlit両サービスの依存関係を導入する際に
+  発生していた`packaging`のバージョン競合を解消
+- 両サービスの`constraints.txt`に同一パッケージの異なるバージョンが
+  固定された場合に検出する回帰テストを追加
+
+## [1.7.0] — 2026-07-27
+
+長時間運用時の可用性、書き込み経路の耐障害性、一覧・CSVの正確性、
+API入力境界、Docker運用およびプライバシー保護を強化したリリース。
+
+### Added
+- Workerスレッド、DB読取疎通、Queue使用量を確認するAPI healthcheckを追加
+- API・Streamlit両コンテナにDocker healthcheckを追加
+  - Composeの`unhealthy`は状態可視化用であり、自動再起動機構ではない
+- Network issue再発時にDocker再起動前の証拠を採取する
+  `NETWORK_ISSUE_DIAGNOSTICS.md`を追加
+- Worker耐障害性、healthcheck、一覧フィルター、SQLite読取リトライ、
+  API境界の回帰テストを追加
+- API・Streamlitの推移依存バージョンを固定する`constraints.txt`を追加
+- DB、env、キャッシュ、内部バックアップ等をDocker build contextから除外する
+  `.dockerignore`を追加
+
 ### Changed
 - 同日の食事ログと行動ログを全置換せず、完全一致する項目の重複を避けて改行追記するよう変更（メモとPUT編集は従来どおり置換）
 - 健康記録の登録条件を緩和し、計測値がなくても食事ログ・行動ログ・メモのいずれかがあれば登録可能に変更
 - 作成APIで`memo: null`を受理し、保存時は従来どおり空文字として扱うよう変更
+- 一覧を選択ユーザー・指定期間のデータだけに限定
+  - 20件単位のページ表示は維持
+  - CSVは現在ページではなく、選択ユーザー・指定期間の全件を出力
+  - ユーザー未選択時に全件表示へフォールバックしない
+- SQLiteの`journal_mode=DELETE`を維持したまま、有限の接続待機と短い読取リトライを追加
+- APIの`limit`を1～500、`offset`を0～10000に制限
+- 日付形式、実在日、期間の前後関係、JSONオブジェクト、文字列長の検証を強化
+- コンテナのタイムゾーンを`Asia/Tokyo`へ統一
+- API・StreamlitをUID/GID 10001の非rootユーザーで実行
+- Streamlitの利用統計送信を無効化
 
 ### Fixed
+
 - 作成・編集フォームで`session_state`と`value`を二重指定して表示されるStreamlit警告を解消
 - 編集フォームでAPI更新後も固定ウィジェットキーの古い測定値が表示される問題を修正
+- 存在しないレコードの更新・削除等で単一Writerスレッドが恒久停止する問題を修正
+- Workerが応答しない場合に`queue.Empty`が未捕捉500になる問題を修正し、
+  明示的な503応答へ変更
+- Workerのレコード不在を404、入力不正を422として安全に返すよう修正
+- 複数ユーザー選択時に選択外ユーザーの健康データが一覧・CSVへ混入する問題を修正
+- 一覧のCSVファイル名と実際の対象期間・内容が一致しない問題を修正
+- `limit=-1`でSQLiteの件数上限を回避できる問題を修正
+- 不正JSONやJSON配列で未処理エラーになる問題を修正
+- `views/graph.py`に残っていたデバッグ出力を削除
+
+### Security
+- CSV内の`=`, `+`, `-`, `@`で始まる文字列を無害化し、
+  表計算ソフトでの数式実行を防止
+- 両コンテナのLinux capabilityをすべて削除
+- API health応答からDB絶対パスを削除
+- Workerの例外ログとレスポンスを固定文言・例外種別へ変更し、
+  入力値や内部パスの露出を抑制
+
+### Known Issues
+- Streamlitの`Cannot load Streamlit frontend code`が長時間運用や日跨ぎ後に
+  表示される問題の根本原因は未確定
+  - `st.fragment`、`st.tabs`、Streamlitバージョンは推測で変更していない
+  - 再発時は`NETWORK_ISSUE_DIAGNOSTICS.md`に従い、
+    Docker再起動前にブラウザ・HTTP・コンテナ・スリープ復帰情報を採取する
+- Docker DesktopのWindowsバインドマウントでは`/data`がLinux側で
+  `root:root`かつ広い権限に見える。ホスト側のNTFS権限で保護する
+- `records/range`は現時点で件数上限を持たず、データ増加時は取得負荷が線形に増える
 
 ## [1.6.0] — 2026-06-25
 

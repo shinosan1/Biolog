@@ -1,3 +1,5 @@
+# テスト環境ではAPI・Streamlit両サービスの実行時依存関係をまとめて導入する。
+# 両サービスのconstraints.txtに同一パッケージを固定する場合は、同じ版に揃えること。
 -r biolog_api/requirements.txt
 -r biolog_streamlit/requirements.txt
 pytest==8.3.5
