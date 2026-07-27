@@ -3,12 +3,11 @@ import os
 import signal
 import threading
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
-from queue import Queue as SyncQueue
+from datetime import date, datetime, timezone
+from queue import Empty, Queue as SyncQueue
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, HTTPException, Query, Request
 
 import biocore
 import preprocess as pp
@@ -53,14 +52,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="BioLog API", lifespan=lifespan)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
 def _enqueue_and_wait(operation: str, payload: dict) -> dict:
     result_q: SyncQueue = SyncQueue()
     task = {
@@ -73,23 +64,56 @@ def _enqueue_and_wait(operation: str, payload: dict) -> dict:
     if q.full():
         raise HTTPException(status_code=503, detail="Write queue is full, try again later")
     q.put(task)
-    result = result_q.get(timeout=30)
+    try:
+        result = result_q.get(timeout=30)
+    except Empty:
+        raise HTTPException(
+            status_code=503,
+            detail="Write worker did not respond in time",
+        )
     if result["status"] == "error":
         detail = result.get("error", "Worker error")
-        if "not found" in detail:
+        error_kind = result.get("error_kind")
+        if error_kind == "not_found":
             raise HTTPException(status_code=404, detail=detail)
+        if error_kind == "validation":
+            raise HTTPException(status_code=422, detail=detail)
         raise HTTPException(status_code=500, detail=detail)
     return result
 
 
 @app.get("/api/health/health")
 def health_check():
-    return {"status": "ok", "db": DATABASE_PATH}
+    q = get_queue()
+    worker_alive = bool(_worker_thread and _worker_thread.is_alive())
+    try:
+        database_ok = biocore.check_database()
+    except Exception:
+        database_ok = False
+
+    if not worker_alive or not database_ok:
+        status = "unhealthy"
+    elif q.full():
+        status = "degraded"
+    else:
+        status = "ok"
+
+    return {
+        "status": status,
+        "worker_alive": worker_alive,
+        "database_ok": database_ok,
+        "queue": {"size": q.qsize(), "max_size": q.maxsize},
+    }
 
 
 @app.post("/api/health/record", status_code=201)
 async def create_record(request: Request):
-    raw = await request.json()
+    try:
+        raw = await request.json()
+    except Exception:
+        raise HTTPException(status_code=422, detail="Request body must be valid JSON")
+    if not isinstance(raw, dict):
+        raise HTTPException(status_code=422, detail="Request body must be a JSON object")
     rid = raw.get("request_id", "?")
 
     # ---- logging wrapper ----
@@ -121,8 +145,8 @@ async def create_record(request: Request):
             "event": "VALIDATION",
             "status": "error",
             "endpoint": "/api/health/record",
-            "detail": str(e),
-            "payload": preprocessed,
+            "error_type": type(e).__name__,
+            "fields": sorted(preprocessed.keys()),
         })
         raise HTTPException(status_code=422, detail=str(e))
 
@@ -137,7 +161,7 @@ async def create_record(request: Request):
 
     log({
         "event": "API_PAYLOAD_BEFORE_QUEUE",
-        "payload": payload
+        "fields": list(payload.keys())
     })
 
     log({
@@ -161,7 +185,7 @@ def update_record(record_id: int, record: HealthRecordUpdate):
     print(json.dumps({
         "event": "UPDATE_REQUEST",
         "record_id": record_id,
-        "payload": {k: v for k, v in payload.items() if k != "id"},
+        "fields": [k for k in payload if k != "id"],
     }, ensure_ascii=False), flush=True)
     result = _enqueue_and_wait("update", payload)
     return {"message": "更新完了", **result}
@@ -193,8 +217,8 @@ def delete_record(record_id: int):
 @app.get("/api/health/records")
 def list_records(
     user_id: Optional[str] = None,
-    limit: int = 20,
-    offset: int = 0,
+    limit: int = Query(default=20, ge=1, le=500),
+    offset: int = Query(default=0, ge=0, le=10000),
 ):
     try:
         return biocore.get_health_records(user_id=user_id, limit=limit, offset=offset)
@@ -208,6 +232,21 @@ def records_by_range(
     end: str,
     user_id: Optional[str] = None,
 ):
+    try:
+        start_date = date.fromisoformat(start)
+        end_date = date.fromisoformat(end)
+    except (TypeError, ValueError):
+        raise HTTPException(
+            status_code=422,
+            detail="start and end must be real dates in YYYY-MM-DD format",
+        )
+    if start_date.isoformat() != start or end_date.isoformat() != end:
+        raise HTTPException(
+            status_code=422,
+            detail="start and end must use YYYY-MM-DD format",
+        )
+    if start_date > end_date:
+        raise HTTPException(status_code=422, detail="start must not be after end")
     try:
         return biocore.get_health_records_by_date_range(
             start_date=start, end_date=end, user_id=user_id

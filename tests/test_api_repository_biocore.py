@@ -65,6 +65,102 @@ def test_insert_upsert_idempotent_and_reads(temp_db_modules):
     assert list(biocore.get_health_records_by_date_range("2026-06-01", "2026-06-30")[0].keys()) == EXPECTED_RECORD_KEYS
 
 
+def test_insert_upsert_preserves_existing_values_for_missing_none_and_empty(
+    temp_db_modules,
+):
+    write_repository, biocore, _db_path = temp_db_modules
+    original = _payload()
+    write_repository.insert_record(original)
+
+    result = write_repository.insert_record({
+        "request_id": "rid-2",
+        "date": "2026-06-25",
+        "user_id": "self",
+        "temperature": 36.1,
+        "pulse": None,
+        "meal_detail": None,
+        "activity_log": "",
+        "memo": None,
+    })
+    assert set(result) == {"id"}
+
+    row = biocore.get_record_by_user_date("self", "2026-06-25")
+    assert row["request_id"] == "rid-2"
+    assert row["temperature"] == 36.1
+
+    for field in (
+        "pulse",
+        "systolic_bp",
+        "diastolic_bp",
+        "weight",
+        "body_fat",
+        "muscle_mass",
+        "bmr",
+        "meal_detail",
+        "activity_log",
+        "memo",
+    ):
+        assert row[field] == original[field]
+
+
+def test_activity_only_upsert_preserves_measurements_and_omitted_text(temp_db_modules):
+    write_repository, biocore, _db_path = temp_db_modules
+    original = _payload()
+    write_repository.insert_record(original)
+
+    result = write_repository.insert_record({
+        "request_id": "rid-activity",
+        "date": "2026-06-25",
+        "user_id": "self",
+        "activity_log": "AI生態資源動画編集",
+    })
+    assert set(result) == {"id"}
+
+    row = biocore.get_record_by_user_date("self", "2026-06-25")
+    assert row["activity_log"] == original["activity_log"] + "\nAI生態資源動画編集"
+    assert row["weight"] == original["weight"]
+    assert row["meal_detail"] == original["meal_detail"]
+    assert row["memo"] == original["memo"]
+
+
+def test_insert_upsert_appends_unique_activity_and_meal_entries(temp_db_modules):
+    write_repository, biocore, _db_path = temp_db_modules
+    write_repository.insert_record(_payload())
+
+    write_repository.insert_record(_payload(
+        request_id="rid-2",
+        activity_log="act\nnew act",
+        meal_detail="meal\nnew meal",
+        memo="latest memo",
+    ))
+    row = biocore.get_record_by_user_date("self", "2026-06-25")
+    assert row["activity_log"] == "act\nnew act"
+    assert row["meal_detail"] == "meal\nnew meal"
+    assert row["memo"] == "latest memo"
+
+    write_repository.insert_record(_payload(
+        request_id="rid-3",
+        activity_log="new act",
+        meal_detail="new meal",
+        memo="latest memo",
+    ))
+    row = biocore.get_record_by_user_date("self", "2026-06-25")
+    assert row["activity_log"] == "act\nnew act"
+    assert row["meal_detail"] == "meal\nnew meal"
+
+
+def test_insert_upsert_keeps_partial_matches_as_distinct_entries(temp_db_modules):
+    write_repository, biocore, _db_path = temp_db_modules
+    write_repository.insert_record(_payload(activity_log="動画編集"))
+    write_repository.insert_record(_payload(
+        request_id="rid-2",
+        activity_log="AI生態資源動画編集",
+    ))
+
+    row = biocore.get_record_by_user_date("self", "2026-06-25")
+    assert row["activity_log"] == "動画編集\nAI生態資源動画編集"
+
+
 def test_update_keeps_existing_values_for_none_and_reports_empty_or_missing(temp_db_modules):
     write_repository, biocore, _db_path = temp_db_modules
     write_repository.insert_record(_payload())
@@ -74,12 +170,16 @@ def test_update_keeps_existing_values_for_none_and_reports_empty_or_missing(temp
         "weight": 63.4,
         "temperature": None,
         "memo": "",
+        "meal_detail": "",
+        "activity_log": "",
     }) == {"id": 1, "updated": 1}
 
     row = biocore.get_record_by_id(1)
     assert row["weight"] == 63.4
     assert row["temperature"] == 36.5
     assert row["memo"] == ""
+    assert row["meal_detail"] == ""
+    assert row["activity_log"] == ""
 
     try:
         write_repository.update_record({"id": 1, "unknown": "x", "temperature": None})

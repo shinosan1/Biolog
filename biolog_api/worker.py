@@ -48,10 +48,38 @@ def worker_loop():
             result = _execute_with_retry(task, q)
             result_queue.put({"request_id": request_id, "status": "success", **result})
         except sqlite3.OperationalError as e:
-            _log(task.get("operation", "?"), request_id, q.qsize(), 0, "error", {"error": str(e)})
-            result_queue.put({"request_id": request_id, "status": "error", "error": str(e)})
+            _report_task_error(task, q, result_queue, e, "database")
+        except ValueError as e:
+            error_kind = "not_found" if "not found" in str(e).lower() else "validation"
+            _report_task_error(task, q, result_queue, e, error_kind)
+        except Exception as e:
+            _report_task_error(task, q, result_queue, e, "internal")
         finally:
             q.task_done()
+
+
+def _report_task_error(task, q, result_queue, error, error_kind):
+    request_id = task.get("request_id", "")
+    _log(
+        task.get("operation", "?"),
+        request_id,
+        q.qsize(),
+        0,
+        "error",
+        {"error_kind": error_kind, "exception_type": type(error).__name__},
+    )
+    public_messages = {
+        "not_found": "Record not found",
+        "validation": "Invalid write request",
+        "database": "Database operation failed",
+        "internal": "Worker operation failed",
+    }
+    result_queue.put({
+        "request_id": request_id,
+        "status": "error",
+        "error_kind": error_kind,
+        "error": public_messages[error_kind],
+    })
 
 
 def _execute_with_retry(task: dict, q: Queue) -> dict:
@@ -81,13 +109,13 @@ def _execute_once(task: dict) -> dict:
     op = task["operation"]
     payload = task["payload"]
     _log(
-    "worker_received",
-    task.get("request_id", ""),
-    0,
-    0,
-    "info",
-    {"payload": task["payload"]}
-)
+        "worker_received",
+        task.get("request_id", ""),
+        0,
+        0,
+        "info",
+        {"fields": sorted(payload.keys())},
+    )
     activity_log = payload.get("activity_log")
 
     if activity_log is None:
@@ -97,7 +125,7 @@ def _execute_once(task: dict) -> dict:
             0,
             0,
             "warning",
-            {"payload": payload}
+            {"fields": sorted(payload.keys())},
         )
     if op == "insert":
         return insert_record(payload)

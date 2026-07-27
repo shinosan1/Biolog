@@ -30,14 +30,18 @@ def render_create():
         submitted = st.form_submit_button("登録")
 
     if submitted:
-        body = build_create_payload(
-            user_id=form_user,
-            form_date=form_date,
-            measurements=measurements,
-            memo=form_memo,
-            meal_detail=form_meal_detail,
-            activity_log=form_activity_log,
-        )
+        try:
+            body = build_create_payload(
+                user_id=form_user,
+                form_date=form_date,
+                measurements=measurements,
+                memo=form_memo,
+                meal_detail=form_meal_detail,
+                activity_log=form_activity_log,
+            )
+        except ValueError as e:
+            st.error(str(e))
+            return
 
         try:
             result = api_post("/api/health/record", body)

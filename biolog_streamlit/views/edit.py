@@ -4,7 +4,12 @@ import streamlit as st
 from api_client import ApiClientError, api_delete, api_get, api_put
 from cache import clear_health_caches
 from config import USER_IDS, USER_LABELS
-from form_components import render_measurement_inputs
+from form_components import (
+    accept_latest_measurements,
+    render_measurement_inputs,
+    sync_edit_measurement_state,
+)
+from form_fields import MEASUREMENT_FIELDS
 from payloads import build_update_payload
 from time_utils import to_jst
 
@@ -55,11 +60,38 @@ def render_edit():
             st.warning(f"{edit_date} のレコードが見つかりません")
         else:
             rec = current_for_edit
+            edit_key_prefix = f"edit_{edit_user}_{edit_date}"
+            conflicts = sync_edit_measurement_state(
+                st.session_state,
+                edit_key_prefix,
+                rec,
+            )
+            if conflicts:
+                labels = {
+                    field.name: field.label
+                    for field in MEASUREMENT_FIELDS
+                }
+                conflict_labels = "、".join(labels[name] for name in conflicts)
+                st.warning(
+                    f"外部更新と未保存の編集が競合しています: {conflict_labels}。"
+                    "現在の入力を保持しています。"
+                )
+                if st.button(
+                    "競合項目を最新値に置換",
+                    key=f"{edit_key_prefix}__accept_latest",
+                ):
+                    accept_latest_measurements(
+                        st.session_state,
+                        edit_key_prefix,
+                        rec,
+                        conflicts,
+                    )
+                    st.rerun()
 
             with st.form(f"edit_form_{edit_user}_{edit_date}"):
                 measurements = render_measurement_inputs(
                     "edit",
-                    f"edit_{edit_user}_{edit_date}",
+                    edit_key_prefix,
                     rec,
                 )
                 edit_memo = st.text_input("メモ", value=rec.get("memo") or "")

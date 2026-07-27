@@ -6,8 +6,18 @@ from form_fields import MEASUREMENT_FIELDS
 def _add_measurements(body: dict, values: dict):
     for field in MEASUREMENT_FIELDS:
         value = values.get(field.name)
-        if value is not None:
-            body[field.name] = field.cast(value)
+        if value is None or (isinstance(value, str) and not value.strip()):
+            continue
+        validate_range = isinstance(value, str)
+        try:
+            converted = field.cast(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"{field.label}は数値で入力してください") from exc
+        if validate_range and (converted < field.min_value or converted > field.max_value):
+            raise ValueError(
+                f"{field.label}は{field.min_value}〜{field.max_value}の範囲で入力してください"
+            )
+        body[field.name] = converted
 
 
 def build_create_payload(

@@ -1,13 +1,13 @@
 # BioLog
 
 > Personal & family health record tracker.
-> Streamlit + FastAPI + SQLite, self-hosted, **LAN-only by design**.
+> Streamlit + FastAPI + SQLite, self-hosted, **localhost-only by default**.
 
 ![Top](docs/screenshots/01-top.png)
 
 家族（自分・父・母など）の体温・血圧・脈拍・体重・体脂肪・食事ログ・行動ログを
 日次で記録・可視化するための個人向けセルフホストアプリです。
-SQLite ファイル 1 つで完結し、外部サービスへのデータ送信はありません。
+SQLite ファイル 1 つで完結し、標準構成では外部サービスへ健康記録を送信しません。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org)
@@ -17,21 +17,20 @@ SQLite ファイル 1 つで完結し、外部サービスへのデータ送信�
 
 ## ⚠ Security Notice — Please Read First
 
-このアプリは **個人・家族の LAN 内利用** を前提に設計されています。
+標準ComposeはBiolog APIの`8766`とUIの`8501`を`127.0.0.1`だけに公開し、**同一PCからの利用**を前提としています。家族別の記録を管理できますが、家族の別端末からのLANアクセスは標準では有効になりません。
 インターネット公開を想定していません。以下は **意図的に未実装** です：
 
 - 認証（API キー / Basic 認証 / OAuth）**なし**
-- CORS: `allow_origins=["*"]`（全オリジン許可）
+- ブラウザのクロスオリジンAPI利用（CORS許可なし）
 - HTTPS / TLS **前提としていない**
 - レート制限 **なし**
 
-**インターネットに直接公開してはいけません。** クラウド VM 等で運用する場合は、
-Reverse proxy + 認証層（Cloudflare Access / Tailscale / Basic 認証等）を必ず前段に置いてください。
+**標準のlocalhost限定を解除したまま、インターネットへ直接公開してはいけません。** LAN内の別端末から利用する場合も、ファイアウォール等で接続元を制限してください。クラウド VM 等で運用する場合は、Reverse proxy + 認証層（Cloudflare Access / Tailscale / Basic 認証等）を必ず前段に置いてください。
 
 ### データの保管場所
 
 すべてのデータはローカルの SQLite ファイル（デフォルト `./data/biolog.db`）に保存されます。
-**外部サーバには一切送信しません。**
+標準構成では、健康記録を外部サーバへ送信しません。
 
 ---
 
@@ -199,7 +198,7 @@ HTTP Request → FastAPI → Queue → Worker (1) → db_manager → SQLite
 
 ## Not For（このアプリは○○には向きません）
 
-- ❌ **インターネット公開**（認証なし、CORS フリー）
+- ❌ **インターネット公開**（認証・TLS・レート制限なし）
 - ❌ **同時 100+ ユーザー**（単一 Writer、SQLite ファイル）
 - ❌ **数百万件のデータ**（SQLite で動くが、グラフ描画が重くなる）
 - ❌ **リアルタイム性が必要なユースケース**（Eventual Consistency 設計、書き込みから表示まで数秒）

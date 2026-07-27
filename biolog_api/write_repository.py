@@ -4,9 +4,49 @@ import sqlite3
 from db_manager import get_connection
 
 
+def _merge_log_entries(existing, incoming):
+    if not isinstance(incoming, str) or not incoming.strip():
+        return existing
+    if not isinstance(existing, str) or not existing.strip():
+        return incoming
+
+    existing_entries = {
+        line.strip()
+        for line in existing.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+        if line.strip()
+    }
+    additions = []
+    for line in incoming.replace("\r\n", "\n").replace("\r", "\n").split("\n"):
+        if line.strip() and line.strip() not in existing_entries:
+            additions.append(line)
+            existing_entries.add(line.strip())
+
+    if not additions:
+        return existing
+    return existing.rstrip("\r\n") + "\n" + "\n".join(additions)
+
+
 def insert_record(payload: dict) -> dict:
     with get_connection(write=True) as conn:
         try:
+            existing = conn.execute(
+                """
+                SELECT meal_detail, activity_log
+                FROM health_records
+                WHERE user_id = ? AND date = ?
+                """,
+                (payload["user_id"], payload["date"]),
+            ).fetchone()
+            meal_detail = payload.get("meal_detail")
+            activity_log = payload.get("activity_log")
+            if existing is not None:
+                meal_detail = _merge_log_entries(
+                    existing["meal_detail"], meal_detail
+                )
+                activity_log = _merge_log_entries(
+                    existing["activity_log"], activity_log
+                )
+
             cur = conn.execute(
                 """
                 INSERT INTO health_records
@@ -16,17 +56,17 @@ def insert_record(payload: dict) -> dict:
                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 ON CONFLICT(user_id, date) DO UPDATE SET
                     request_id   = excluded.request_id,
-                    temperature  = excluded.temperature,
-                    pulse        = excluded.pulse,
-                    systolic_bp  = excluded.systolic_bp,
-                    diastolic_bp = excluded.diastolic_bp,
-                    weight       = excluded.weight,
-                    body_fat     = excluded.body_fat,
-                    muscle_mass  = excluded.muscle_mass,
-                    bmr          = excluded.bmr,
-                    meal_detail  = excluded.meal_detail,
-                    activity_log = excluded.activity_log,
-                    memo         = excluded.memo
+                    temperature  = COALESCE(excluded.temperature, health_records.temperature),
+                    pulse        = COALESCE(excluded.pulse, health_records.pulse),
+                    systolic_bp  = COALESCE(excluded.systolic_bp, health_records.systolic_bp),
+                    diastolic_bp = COALESCE(excluded.diastolic_bp, health_records.diastolic_bp),
+                    weight       = COALESCE(excluded.weight, health_records.weight),
+                    body_fat     = COALESCE(excluded.body_fat, health_records.body_fat),
+                    muscle_mass  = COALESCE(excluded.muscle_mass, health_records.muscle_mass),
+                    bmr          = COALESCE(excluded.bmr, health_records.bmr),
+                    meal_detail  = COALESCE(NULLIF(excluded.meal_detail, ''), health_records.meal_detail),
+                    activity_log = COALESCE(NULLIF(excluded.activity_log, ''), health_records.activity_log),
+                    memo         = COALESCE(NULLIF(excluded.memo, ''), health_records.memo)
                 """,
                 (
                     payload["request_id"],
@@ -40,9 +80,9 @@ def insert_record(payload: dict) -> dict:
                     payload.get("body_fat"),
                     payload.get("muscle_mass"),
                     payload.get("bmr"),
-                    payload.get("meal_detail"),
-                    payload.get("activity_log"),
-                    payload.get("memo", ""),
+                    meal_detail,
+                    activity_log,
+                    payload.get("memo") or "",
                 ),
             )
             return {"id": cur.lastrowid}

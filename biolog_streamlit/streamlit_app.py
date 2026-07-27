@@ -36,7 +36,7 @@ with st.sidebar:
         clear_health_caches()
         st.rerun()
 
-    st.caption("※ データは非同期で反映されます。表示が更新されない場合は「更新」を押してください。")
+    st.caption("※ データ一覧は約10秒ごとに自動更新されます。必要に応じて「更新」を押してください。")
 
     if st.button("ヘルスチェック"):
         try:

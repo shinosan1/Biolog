@@ -69,6 +69,88 @@ def test_build_update_payload_skips_none_but_keeps_zero():
     }
 
 
+def test_create_payload_converts_weight_text_to_float(monkeypatch):
+    import payloads
+
+    monkeypatch.setattr(payloads.uuid, "uuid4", lambda: "fixed-request-id")
+    body = payloads.build_create_payload(
+        user_id="self",
+        form_date=date(2026, 7, 23),
+        measurements={"weight": "64.2"},
+        memo="",
+        meal_detail="",
+        activity_log="",
+    )
+
+    assert body["weight"] == 64.2
+
+
+def test_create_payload_skips_blank_weight_text():
+    from payloads import build_create_payload
+
+    body = build_create_payload(
+        user_id="self",
+        form_date=date(2026, 7, 23),
+        measurements={"weight": "  "},
+        memo="",
+        meal_detail="",
+        activity_log="",
+    )
+
+    assert "weight" not in body
+
+
+@pytest.mark.parametrize("weight", ["abc", "0", "300"])
+def test_create_payload_rejects_invalid_weight_text(weight):
+    from payloads import build_create_payload
+
+    with pytest.raises(ValueError):
+        build_create_payload(
+            user_id="self",
+            form_date=date(2026, 7, 23),
+            measurements={"weight": weight},
+            memo="",
+            meal_detail="",
+            activity_log="",
+        )
+
+
+def test_create_payload_converts_all_measurement_text_values():
+    from payloads import build_create_payload
+
+    body = build_create_payload(
+        user_id="self",
+        form_date=date(2026, 7, 23),
+        measurements={
+            "weight": "64.2",
+            "temperature": "36.5",
+            "systolic_bp": "120",
+            "diastolic_bp": "80",
+            "pulse": "72",
+            "body_fat": "18.0",
+            "bmr": "1400",
+            "muscle_mass": "45.0",
+        },
+        memo="",
+        meal_detail="",
+        activity_log="",
+    )
+
+    assert {field: body[field] for field in (
+        "weight", "temperature", "systolic_bp", "diastolic_bp",
+        "pulse", "body_fat", "bmr", "muscle_mass",
+    )} == {
+        "weight": 64.2,
+        "temperature": 36.5,
+        "systolic_bp": 120,
+        "diastolic_bp": 80,
+        "pulse": 72,
+        "body_fat": 18.0,
+        "bmr": 1400,
+        "muscle_mass": 45.0,
+    }
+
+
 def test_form_fields_order_and_layout_groups_match_existing_forms():
     from form_fields import MEASUREMENT_FIELDS
 

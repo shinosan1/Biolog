@@ -57,10 +57,49 @@ def test_health_record_create_validation_accepts_valid_record():
 
 
 @pytest.mark.parametrize(
+    "field,value",
+    [
+        ("activity_log", "AI生態資源動画編集"),
+        ("meal_detail", "白ご飯、サラダチキン"),
+        ("memo", "テストデータ入力"),
+        ("body_fat", 0.0),
+    ],
+)
+def test_health_record_create_accepts_each_health_value(field, value):
+    from schemas import HealthRecordCreate
+
+    record = HealthRecordCreate(**{
+        "request_id": "rid",
+        "date": "2026-07-19",
+        "user_id": "self",
+        field: value,
+    })
+
+    assert getattr(record, field) == value
+
+
+def test_health_record_create_accepts_null_memo_with_activity_log():
+    from schemas import HealthRecordCreate
+
+    record = HealthRecordCreate(
+        request_id="rid",
+        date="2026-07-19",
+        user_id="self",
+        activity_log="AI生態資源動画編集",
+        memo=None,
+    )
+
+    assert record.activity_log == "AI生態資源動画編集"
+    assert record.memo is None
+
+
+@pytest.mark.parametrize(
     "payload",
     [
         {"request_id": "rid", "date": "2026-06-25", "user_id": "other", "weight": 61.2},
         {"request_id": "rid", "date": "2026-06-25", "user_id": "self"},
+        {"request_id": "rid", "date": "2026-06-25", "user_id": "self", "activity_log": ""},
+        {"request_id": "rid", "date": "2026-06-25", "user_id": "self", "meal_detail": "  ", "memo": None},
         {"request_id": "rid", "date": "2026-06-25", "user_id": "self", "temperature": 50.0},
         {"request_id": "rid", "date": "2026-06-25", "user_id": "self", "weight": 61.2, "extra": "x"},
     ],

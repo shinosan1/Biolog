@@ -1,6 +1,7 @@
+from datetime import date
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 USER_IDS = {"self", "father", "mother"}
 
@@ -17,7 +18,7 @@ USER_IDS = {"self", "father", "mother"}
 class HealthRecordCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    request_id: str          # デフォルト削除（preprocess 担当）
+    request_id: str = Field(max_length=128)
     date: str                # Optional + default_date validator 削除（preprocess 担当）
     user_id: str
     temperature: Optional[float] = None
@@ -28,9 +29,20 @@ class HealthRecordCreate(BaseModel):
     body_fat: Optional[float] = None
     muscle_mass:  Optional[float] = None
     bmr:          Optional[int]   = None
-    meal_detail:  Optional[str]   = None
-    activity_log: Optional[str]   = None
-    memo:         str = ""
+    meal_detail:  Optional[str] = Field(default=None, max_length=10000)
+    activity_log: Optional[str] = Field(default=None, max_length=20000)
+    memo:         Optional[str] = Field(default=None, max_length=10000)
+
+    @field_validator("date")
+    @classmethod
+    def valid_date(cls, v):
+        try:
+            parsed = date.fromisoformat(v)
+        except (TypeError, ValueError):
+            raise ValueError("date must be a real date in YYYY-MM-DD format")
+        if parsed.isoformat() != v:
+            raise ValueError("date must be a real date in YYYY-MM-DD format")
+        return v
 
     @field_validator("user_id")
     @classmethod
@@ -96,13 +108,22 @@ class HealthRecordCreate(BaseModel):
         return v
 
     @model_validator(mode="after")
-    def at_least_one_measurement(self):
-        fields = [
+    def at_least_one_health_value(self):
+        measurements = [
             self.temperature, self.pulse, self.systolic_bp, self.diastolic_bp,
             self.weight, self.body_fat, self.muscle_mass, self.bmr,
         ]
-        if all(f is None for f in fields):
-            raise ValueError("At least one measurement field must be provided")
+        text_logs = [self.meal_detail, self.activity_log, self.memo]
+        has_measurement = any(value is not None for value in measurements)
+        has_text_log = any(
+            isinstance(value, str) and bool(value.strip())
+            for value in text_logs
+        )
+        if not has_measurement and not has_text_log:
+            raise ValueError(
+                "At least one measurement, meal detail, activity log, or memo "
+                "must be provided"
+            )
         return self
 
 
@@ -117,9 +138,9 @@ class HealthRecordUpdate(BaseModel):
     body_fat: Optional[float] = None
     muscle_mass: Optional[float] = None
     bmr: Optional[int] = None
-    memo:         Optional[str] = None
-    meal_detail:  Optional[str] = None
-    activity_log: Optional[str] = None
+    memo:         Optional[str] = Field(default=None, max_length=10000)
+    meal_detail:  Optional[str] = Field(default=None, max_length=10000)
+    activity_log: Optional[str] = Field(default=None, max_length=20000)
 
     @field_validator("temperature")
     @classmethod

@@ -15,7 +15,7 @@ def get_connection(*, read: bool = False, write: bool = False):
 
     conn = sqlite3.connect(
         DATABASE_PATH,
-        timeout=0,
+        timeout=1.0,
         isolation_level=None,
     )
     conn.text_factory = str
@@ -23,6 +23,7 @@ def get_connection(*, read: bool = False, write: bool = False):
 
     try:
         conn.execute("PRAGMA journal_mode=DELETE")
+        conn.execute("PRAGMA busy_timeout=1000")
         conn.execute("PRAGMA foreign_keys=ON")
 
         if write:

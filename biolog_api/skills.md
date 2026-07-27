@@ -135,10 +135,14 @@ Content-Type: application/json
 | `bmr` | int | ※1 | 基礎代謝 (0〜5000 kcal) |
 | `meal_detail` | string | 省略可 | 食事ログ（長文可、`null` 許容） |
 | `activity_log` | string | 省略可 | 行動ログ（長文可、`null` 許容） |
-| `memo` | string | 省略可 | メモ (デフォルト: `""`) |
+| `memo` | string / null | 省略可 | メモ（`null` 許容。保存時は空文字として扱う） |
 
-※1: 計測値は全て省略可だが、**最低1つは必須**。全て省略すると 422 エラー。
-`meal_detail` / `activity_log` / `memo` のみでは「計測値なし」とみなされ 422 になるので注意。
+※1: 計測値は全て省略可。計測値、`meal_detail`、`activity_log`、`memo` のうち、
+**最低1つに有効な値が必須**。全て省略、`null`、空文字、空白のみの場合は 422 エラー。
+
+同一ユーザー・同一日付へ POST した場合、`meal_detail` と `activity_log` は既存内容へ
+改行区切りで追記されます。完全一致する改行単位の項目は重複追加されません。
+`memo` は最新の非空値で置換されます。PUT による編集は各項目を全文置換します。
 
 リクエスト例:
 ```json
@@ -368,7 +372,7 @@ else:
     "bmr":          int   | None,
     "meal_detail":  str   | None,  # 食事ログ（長文可）
     "activity_log": str   | None,  # 行動ログ（長文可）
-    "memo":         str,
+    "memo":         str,          # リクエストの null は保存時に空文字として扱う
     "created_at":   str,       # "YYYY-MM-DD HH:MM:SS"
 }
 ```

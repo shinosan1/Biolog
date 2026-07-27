@@ -22,9 +22,7 @@ def render_graph(selected_users: list, date_start, date_end):
             st.info("データがありません")
         else:
             df = pd.DataFrame(data)
-            print("raw:", len(df), flush=True)                                                # ①
             df["date"] = pd.to_datetime(df["date"]).dt.normalize()
-            print("unique dates:", df["date"].nunique(), flush=True)                          # ②
             df = df[df["user_id"].isin(selected_users)]
 
             df = (
@@ -32,9 +30,6 @@ def render_graph(selected_users: list, date_start, date_end):
                   .groupby(["user_id", "date"], as_index=False)
                   .last()
             )
-            print("after_groupby:", len(df), flush=True)
-            print("max dup:", df.groupby(["user_id","date"]).size().max(), flush=True)        # ③
-
             if df.empty:
                 st.info("選択した期間・ユーザーのデータがありません")
             else:

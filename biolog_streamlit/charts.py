@@ -28,9 +28,6 @@ def plot_metric(df: pd.DataFrame, col: str, title: str, yunit: str, selected_use
             .dropna(subset=[col])
             .sort_values("date")
         )
-        print(f"DEBUG: {title} [{USER_LABELS[uid]}] {len(udf)} points (unique dates)", flush=True)
-        print("udf dates:", udf["date"].nunique(), flush=True)                               # ④
-        print("x values:", list(udf["date"]), flush=True)                                    # ⑤
         if not udf.empty:
             ax.plot(
                 udf["date"], udf[col],
@@ -46,16 +43,13 @@ def plot_metric(df: pd.DataFrame, col: str, title: str, yunit: str, selected_use
             ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:.1f}"))
         all_dates = sorted(df["date"].unique())
         ax.set_xticks(all_dates)
-        print("xticks:", ax.get_xticks(), flush=True)                                        # ⑥
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
         fig.autofmt_xdate(rotation=30)
         fig.canvas.draw()
-        print("xticklabels:", [t.get_text() for t in ax.get_xticklabels()], flush=True)     # ⑦
         ax.legend(loc="upper left", fontsize=9)
         ax.grid(True, alpha=0.3)
         plt.tight_layout()
         st.pyplot(fig, clear_figure=True)
-        print("DEBUG: Labels fixed with DateFormatter('%m-%d')", flush=True)
     else:
         st.info(f"{title}のデータがありません")
     plt.close(fig)
@@ -71,7 +65,6 @@ def plot_blood_pressure(df: pd.DataFrame, selected_users: list):
             .dropna(subset=["systolic_bp", "diastolic_bp"])
             .sort_values("date")
         )
-        print(f"DEBUG: 血圧 [{USER_LABELS[uid]}] {len(udf)} points (unique dates)", flush=True)
         if not udf.empty:
             ax_bp.plot(
                 udf["date"], udf["systolic_bp"],

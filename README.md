@@ -1,13 +1,13 @@
 # BioLog
 
 > Personal & family health record tracker.
-> Streamlit + FastAPI + SQLite, self-hosted, **LAN-only by design**.
+> Streamlit + FastAPI + SQLite, self-hosted, **localhost-only by default**.
 
 ![Top](docs/screenshots/01-top.png)
 
 家族（自分・父・母など）の体温・血圧・脈拍・体重・体脂肪・食事ログ・行動ログを
 日次で記録・可視化するための個人向けセルフホストアプリです。
-SQLite ファイル 1 つで完結し、外部サービスへのデータ送信はありません。
+SQLite ファイル 1 つで完結し、標準構成では外部サービスへ健康記録を送信しません。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org)
@@ -17,21 +17,20 @@ SQLite ファイル 1 つで完結し、外部サービスへのデータ送信�
 
 ## ⚠ Security Notice — Please Read First
 
-このアプリは **個人・家族の LAN 内利用** を前提に設計されています。
+標準ComposeはBiolog APIの`8766`とUIの`8501`を`127.0.0.1`だけに公開し、**同一PCからの利用**を前提としています。家族別の記録を管理できますが、家族の別端末からのLANアクセスは標準では有効になりません。
 インターネット公開を想定していません。以下は **意図的に未実装** です：
 
 - 認証（API キー / Basic 認証 / OAuth）**なし**
-- CORS: `allow_origins=["*"]`（全オリジン許可）
+- ブラウザのクロスオリジンAPI利用（CORS許可なし）
 - HTTPS / TLS **前提としていない**
 - レート制限 **なし**
 
-**インターネットに直接公開してはいけません。** クラウド VM 等で運用する場合は、
-Reverse proxy + 認証層（Cloudflare Access / Tailscale / Basic 認証等）を必ず前段に置いてください。
+**標準のlocalhost限定を解除したまま、インターネットへ直接公開してはいけません。** LAN内の別端末から利用する場合も、ファイアウォール等で接続元を制限してください。クラウド VM 等で運用する場合は、Reverse proxy + 認証層（Cloudflare Access / Tailscale / Basic 認証等）を必ず前段に置いてください。
 
 ### データの保管場所
 
 すべてのデータはローカルの SQLite ファイル（デフォルト `./data/biolog.db`）に保存されます。
-**外部サーバには一切送信しません。**
+標準構成では、健康記録を外部サーバへ送信しません。
 
 ---
 
@@ -199,11 +198,37 @@ HTTP Request → FastAPI → Queue → Worker (1) → db_manager → SQLite
 
 ## Not For（このアプリは○○には向きません）
 
-- ❌ **インターネット公開**（認証なし、CORS フリー）
+- ❌ **インターネット公開**（認証・TLS・レート制限なし）
 - ❌ **同時 100+ ユーザー**（単一 Writer、SQLite ファイル）
 - ❌ **数百万件のデータ**（SQLite で動くが、グラフ描画が重くなる）
 - ❌ **リアルタイム性が必要なユースケース**（Eventual Consistency 設計、書き込みから表示まで数秒）
 - ❌ **マルチテナント / 不特定多数のユーザー**（user_id は固定 3 種：self / father / mother）
+
+## 2026-07-27 安定性・監査対応
+
+- Worker内の各書き込みタスクを例外隔離し、レコード不在や不正タスクで
+  単一Writerスレッド全体が停止しないようにした。
+- Worker応答が30秒以内に返らない場合は、未処理の500ではなく503を返す。
+- API healthはWorker生存、DB読取疎通、Queue使用量を返す。
+  Docker Composeのhealthcheckは状態の可視化用であり、`unhealthy`だけでは
+  コンテナは自動再起動されない。
+- 一覧とCSVは、指定期間および選択ユーザーだけを対象とする。
+  CSVは現在ページではなく指定範囲の全件を出力する。
+- SQLiteは`journal_mode=DELETE`を維持し、有限のbusy timeoutと短い読取リトライを使う。
+- APIはページング負値、不正日付、逆転期間、JSONオブジェクト以外、
+  過大なテキストを拒否する。`preprocess.py`の既存の整数型補正は維持する。
+- コンテナ時刻は`Asia/Tokyo`へ統一し、Streamlit利用統計を無効化した。
+- CSVの文字列が`=`, `+`, `-`, `@`で始まる場合は、表計算ソフトで
+  数式として実行されないよう無害化する。
+- Linuxコンテナの追加capabilityはすべて破棄する。
+- APIとStreamlitはUID/GID `10001`の非rootユーザーで実行する。
+  `/data`のバインドマウントは運用反映前に書き込み権限を確認する。
+- `constraints.txt`で、2026-07-27時点の動作中イメージから採取した
+  推移依存パッケージの版を固定する。
+
+Streamlitの`Cannot load Streamlit frontend code`は原因未確定である。
+再発時は[NETWORK_ISSUE_DIAGNOSTICS.md](NETWORK_ISSUE_DIAGNOSTICS.md)に従い、
+Docker再起動前にブラウザ、HTTP、コンテナ、スリープ復帰の証拠を採取する。
 
 これらが必要な場合は別のスタック（PostgreSQL + 認証付きフレームワーク等）を検討してください。
 
