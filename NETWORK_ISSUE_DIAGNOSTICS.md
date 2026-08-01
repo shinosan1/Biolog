@@ -69,3 +69,31 @@ Invoke-WebRequest -UseBasicParsing -TimeoutSec 10 'http://127.0.0.1:8501/static/
 
 証拠が揃うまでは、`st.fragment`、`st.tabs`、Streamlitバージョン、
 キャッシュ設定を原因対策として変更しません。
+
+## 5. 2026-08-01 SIGSEGVの証拠と回避実験
+
+再接続対応した`docker events`監視により、Streamlitの異常終了コード`139`
+（SIGSEGV）を取得しました。`PYTHONFAULTHANDLER=1`で採取したスタックは、
+`views/list_view.py`の`st.dataframe`から
+`convert_pandas_df_to_arrow_bytes`、`pyarrow.pandas_compat.convert_column`へ至る
+Pandas→PyArrow変換中のクラッシュを示しています。
+
+同じ列構成とdtypeのダミーデータを未正規化・正規化・並行実行で計8万回変換しても
+再現しませんでした。列構成やdtypeだけではなく、実データ内容または長時間稼働時の
+プロセス状態が関与する可能性があります。PyArrowが根本原因か、先行する別の異常を
+顕在化させた場所かは未確定です。
+
+回避実験では次を行います。
+
+1. 一覧の`st.dataframe`と削除確認の`st.table`を、値と列名をエスケープする
+   共通HTMLレンダラーへ置換し、アプリ内のArrow表変換経路をなくす。
+2. 一覧の`st.fragment(run_every="10s")`は維持する。
+3. `PYTHONFAULTHANDLER=1`と`docker events`・リソース監視を維持する。
+4. 反映前に現行コンテナのinspect・ログ・イベントとイメージを退避し、
+   旧イメージへ戻せるタグを作成する。
+5. Streamlitだけを`--no-deps`で再作成し、APIコンテナを対照群として維持する。
+
+反映後は最大7日間、再起動・`die`イベント・`records/latest/self`件数を記録します。
+一覧とCSVの表示値も目視確認します。再発ゼロはこの症状の回避を示しますが、
+根本原因の確定とは扱いません。Arrow経路が残らない状態で再発した場合は、
+先行するメモリ破壊または別のネイティブ要因を調査します。

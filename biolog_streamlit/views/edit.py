@@ -11,6 +11,7 @@ from form_components import (
 )
 from form_fields import MEASUREMENT_FIELDS
 from payloads import build_update_payload
+from safe_table import render_safe_table
 from time_utils import to_jst
 
 
@@ -143,8 +144,10 @@ def render_edit():
         disp = {k: v for k, v in del_preview.items() if k != "request_id"}
         disp["ユーザー"] = USER_LABELS.get(disp.pop("user_id", ""), "")
         if "created_at" in disp and disp["created_at"]:
-            disp["created_at"] = to_jst(disp["created_at"])
-        st.table(pd.DataFrame([disp]))
+            disp["created_at"] = to_jst(
+                disp["created_at"], record_id=disp.get("id")
+            )
+        render_safe_table(pd.DataFrame([disp]))
 
         confirm_delete = st.checkbox(f"上記レコード（ID: {delete_id}）を削除することを確認します")
         if st.button("削除実行", disabled=not confirm_delete):
