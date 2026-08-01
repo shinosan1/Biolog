@@ -4,6 +4,7 @@ import streamlit as st
 from api_client import ApiClientError, api_get
 from config import USER_LABELS
 from formatters import _safe_str, is_truncated, truncate
+from safe_table import render_safe_table
 from time_utils import to_jst
 
 
@@ -26,7 +27,10 @@ def _prepare_display(df: pd.DataFrame) -> pd.DataFrame:
     existing = [c for c in display_cols if c in df.columns]
     disp = df[existing].copy()
     if "created_at" in disp.columns:
-        disp["created_at"] = disp["created_at"].apply(to_jst)
+        disp["created_at"] = disp.apply(
+            lambda row: to_jst(row["created_at"], record_id=row.get("id")),
+            axis=1,
+        )
     disp = disp.rename(columns={
         "created_at":   "記録日時",
         "date":         "対象日",
@@ -111,7 +115,7 @@ def render_list(selected_users: list, date_start, date_end):
                     lambda s, lim=limit: truncate(s, lim)
                 )
 
-        st.dataframe(disp_view, use_container_width=True)
+        render_safe_table(disp_view)
 
         # ─── 詳細表示（_LIMITS を超えるセルのみ expander 展開）───
         long_cols = [c for c in _LIMITS if c in disp.columns]
