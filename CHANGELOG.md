@@ -4,6 +4,10 @@ BioLog プロジェクトの全変更履歴です。
 形式は [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/) に従います。
 
 ---
+## [1.7.3] — 2026-08-13
+
+### Added
+- BioLog起動、BioLog再ビルド起動、BioLog停止のバッチファイルを追加
 
 ## [1.7.2] — 2026-08-01
 
