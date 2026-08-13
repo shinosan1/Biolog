@@ -7,6 +7,7 @@ from api_client import ApiClientError, api_get
 from cache import clear_health_caches
 from config import USER_IDS, USER_LABELS
 from time_utils import JST
+from ui_style import inject_number_input_styles
 from views.create import render_create
 from views.edit import render_edit
 from views.graph import render_graph
@@ -14,6 +15,7 @@ from views.list_view import render_list
 from views.summary import render_summary
 
 st.set_page_config(page_title="BioLog", layout="wide")
+inject_number_input_styles()
 st.title("BioLog — 家族健康記録")
 
 

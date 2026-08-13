@@ -51,6 +51,26 @@ def test_unsafe_html_is_limited_to_safe_table_renderer():
     assert matches == ["biolog_streamlit/safe_table.py"]
 
 
+def test_st_html_is_limited_to_the_style_module():
+    matches = []
+    for path in (PROJECT_ROOT / "biolog_streamlit").rglob("*.py"):
+        if "st.html(" in path.read_text(encoding="utf-8"):
+            matches.append(path.relative_to(PROJECT_ROOT).as_posix())
+
+    assert matches == ["biolog_streamlit/ui_style.py"]
+
+
+def test_number_input_styles_are_injected_from_the_app_entrypoint():
+    app_source = _read("biolog_streamlit/streamlit_app.py")
+    style_source = _read("biolog_streamlit/ui_style.py")
+
+    assert "from ui_style import inject_number_input_styles" in app_source
+    assert "inject_number_input_styles()" in app_source
+    # The stylesheet must stay a constant: no interpolation into st.html().
+    assert "st.html(_NUMBER_INPUT_STYLE)" in style_source
+    assert 'data-testid="InputInstructions"' in style_source
+
+
 def test_safe_table_escapes_values_columns_and_preserves_text():
     dataframe_to_safe_html = importlib.import_module(
         "safe_table"
