@@ -15,7 +15,11 @@ from time_utils import jst_date
 
 
 def preprocess_record(raw: dict) -> dict:
-    """pure function: 外部サービス依存なし。"""
+    """pure function: 外部サービス依存なし。
+
+    整数項目が数値として解釈できない場合は ValueError を送出する。
+    呼び出し側（api.create_record）はこれを 422 に変換する。
+    """
     data = dict(raw)
 
     # 1. 構造補完（欠損時のみ）
@@ -25,13 +29,22 @@ def preprocess_record(raw: dict) -> dict:
         data["date"] = jst_date()
 
     # 2. 型補正（LLM が float で返す整数フィールドのみ。null は維持）
+    #    数値として解釈できない値は None に落とさず ValueError を送出する。
+    #    黙って捨てると入力ミスに気付けないまま他の項目だけが保存される。
+    #
+    #    OverflowError は ValueError の派生ではないため個別に捕捉する。
+    #    "inf" / "1e309" は float() までは成功し int() で OverflowError になる
+    #    （json.loads は Infinity リテラルも受理するため実際に到達しうる）。
+    invalid_fields = []
     for field in ("pulse", "bmr", "systolic_bp", "diastolic_bp"):
         v = data.get(field)
         if v is not None:
             try:
                 data[field] = int(float(v))
-            except (ValueError, TypeError):
-                data[field] = None
+            except (ValueError, TypeError, OverflowError):
+                invalid_fields.append(field)
+    if invalid_fields:
+        raise ValueError("Invalid number format: " + ", ".join(invalid_fields))
 
     # 3. BP 文字列分解: "110/75", "110－75", "110/75mmHg" 等に対応
     bp = data.pop("blood_pressure", None)

@@ -42,6 +42,72 @@ def test_preprocess_record_keeps_existing_bp_fields_over_split_values(monkeypatc
     assert result["diastolic_bp"] == 80
 
 
+@pytest.mark.parametrize("field", ["pulse", "bmr", "systolic_bp", "diastolic_bp"])
+@pytest.mark.parametrize(
+    "value",
+    [
+        # float() の時点で失敗する値
+        "abc", "", [], {}, "12abc",
+        # float() は成功し int() で OverflowError になる値
+        "inf", "-inf", "Infinity", "1e309", "-1e309", float("inf"), float("-inf"),
+        # float() は成功し int() で ValueError になる値
+        "nan", float("nan"),
+    ],
+)
+def test_preprocess_record_rejects_non_numeric_integer_fields(monkeypatch, field, value):
+    import preprocess
+
+    monkeypatch.setattr(preprocess.uuid, "uuid4", lambda: "fixed-request-id")
+    monkeypatch.setattr(preprocess, "jst_date", lambda: "2026-06-25")
+
+    with pytest.raises(ValueError) as exc:
+        preprocess.preprocess_record({
+            "user_id": "self",
+            "weight": 61.2,
+            field: value,
+        })
+
+    assert field in str(exc.value)
+
+
+def test_preprocess_record_reports_every_invalid_integer_field(monkeypatch):
+    import preprocess
+
+    monkeypatch.setattr(preprocess.uuid, "uuid4", lambda: "fixed-request-id")
+    monkeypatch.setattr(preprocess, "jst_date", lambda: "2026-06-25")
+
+    with pytest.raises(ValueError) as exc:
+        preprocess.preprocess_record({
+            "user_id": "self",
+            "pulse": "abc",
+            "bmr": [],
+        })
+
+    message = str(exc.value)
+    assert "pulse" in message
+    assert "bmr" in message
+
+
+def test_preprocess_record_keeps_float_to_int_coercion_and_null(monkeypatch):
+    import preprocess
+
+    monkeypatch.setattr(preprocess.uuid, "uuid4", lambda: "fixed-request-id")
+    monkeypatch.setattr(preprocess, "jst_date", lambda: "2026-06-25")
+
+    result = preprocess.preprocess_record({
+        "user_id": "self",
+        "pulse": 72.9,
+        "bmr": "1400.0",
+        "systolic_bp": 120.0,
+        "diastolic_bp": None,
+    })
+
+    assert result["pulse"] == 72
+    assert result["bmr"] == 1400
+    assert result["systolic_bp"] == 120
+    assert result["diastolic_bp"] is None
+
+
 def test_health_record_create_validation_accepts_valid_record():
     from schemas import HealthRecordCreate
 

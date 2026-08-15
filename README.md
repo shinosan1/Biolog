@@ -227,7 +227,7 @@ HTTP Request → FastAPI → Queue → Worker (1) → db_manager → SQLite
   推移依存パッケージの版を固定する。
 
 Streamlitの`Cannot load Streamlit frontend code`は原因未確定である。
-再発時は[NETWORK_ISSUE_DIAGNOSTICS.md](NETWORK_ISSUE_DIAGNOSTICS.md)に従い、
+再発時は[NETWORK_ISSUE_DIAGNOSTICS.md](docs/NETWORK_ISSUE_DIAGNOSTICS.md)に従い、
 Docker再起動前にブラウザ、HTTP、コンテナ、スリープ復帰の証拠を採取する。
 
 これらが必要な場合は別のスタック（PostgreSQL + 認証付きフレームワーク等）を検討してください。

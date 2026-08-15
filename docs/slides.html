@@ -1,362 +1,730 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>BioLog — Claude Code と作った家族健康記録アプリ</title>
-
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/atom-one-dark.css">
-
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="BioLogでできることを初心者向けに説明するスライド">
+  <title>BioLogでできること</title>
   <style>
-    .reveal { font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif; }
-    .reveal h1 { font-size: 2.2em; }
-    .reveal h2 { font-size: 1.6em; color: #4FC3F7; }
-    .reveal h3 { font-size: 1.2em; color: #81D4FA; }
-    .reveal p, .reveal li { font-size: 0.85em; line-height: 1.6; }
-    .reveal pre { font-size: 0.45em; }
-    .reveal code { background: #1a1a1a; padding: 2px 6px; border-radius: 3px; }
-    .reveal .small { font-size: 0.6em; color: #999; }
-    .reveal .tag { display: inline-block; background: #2196F3; color: white; padding: 2px 10px; border-radius: 12px; font-size: 0.5em; margin: 0 4px; }
-    .reveal .tag.fix { background: #F44336; }
-    .reveal .tag.feat { background: #4CAF50; }
-    .reveal .tag.refactor { background: #FF9800; }
-    .reveal .center { text-align: center; }
-    .reveal .lead { font-size: 1.1em; color: #ddd; }
-    .reveal .two-col { display: flex; gap: 30px; }
-    .reveal .col { flex: 1; }
-    .reveal table { font-size: 0.55em; margin: 0.5em auto; }
-    .reveal table th { background: #263238; color: #4FC3F7; }
-    .reveal blockquote { font-style: normal; border-left: 4px solid #4FC3F7; padding: 8px 16px; background: rgba(79, 195, 247, 0.08); font-size: 0.8em; }
-    .reveal .footnote { font-size: 0.45em; color: #777; margin-top: 1em; }
+    :root {
+      color-scheme: dark;
+      --bg: #090d13;
+      --surface: #111722;
+      --surface-2: #181f2c;
+      --text: #f7f8fb;
+      --muted: #b8c0cf;
+      --line: #313a4b;
+      --accent: #ff5668;
+      --accent-2: #ffbd59;
+      --blue: #38a9ed;
+      --green: #55c789;
+      --danger: #ff7b87;
+      --shadow: 0 24px 80px rgba(0, 0, 0, .36);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Yu Gothic UI", "Hiragino Kaku Gothic ProN", Meiryo, system-ui, sans-serif;
+    }
+
+    button,
+    a {
+      font: inherit;
+    }
+
+    .skip-link {
+      position: fixed;
+      z-index: 100;
+      top: .75rem;
+      left: .75rem;
+      padding: .65rem 1rem;
+      transform: translateY(-160%);
+      border-radius: .5rem;
+      background: var(--text);
+      color: var(--bg);
+    }
+
+    .skip-link:focus {
+      transform: translateY(0);
+    }
+
+    .deck {
+      height: 100%;
+    }
+
+    .slide {
+      position: relative;
+      display: none;
+      width: 100vw;
+      height: 100vh;
+      min-height: 36rem;
+      padding: clamp(2.4rem, 5vw, 5.25rem) clamp(2rem, 7vw, 8rem) 6.25rem;
+      overflow: hidden;
+      isolation: isolate;
+      background:
+        radial-gradient(circle at 92% 8%, rgba(56, 169, 237, .13), transparent 28%),
+        linear-gradient(145deg, #090d13 0%, #0d121b 62%, #101722 100%);
+    }
+
+    .slide::before {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2), #e8e948);
+    }
+
+    .slide.is-active {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      animation: slide-in .28s ease-out;
+    }
+
+    @keyframes slide-in {
+      from { opacity: .25; transform: translateX(1.5rem); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .eyebrow {
+      margin: 0 0 1.2rem;
+      color: var(--accent-2);
+      font-size: clamp(1rem, 1.5vw, 1.35rem);
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      max-width: 12ch;
+      margin-bottom: 1.5rem;
+      font-size: clamp(3.6rem, 7.5vw, 7rem);
+      line-height: .98;
+      letter-spacing: -.045em;
+    }
+
+    h2 {
+      max-width: 18ch;
+      margin-bottom: 2rem;
+      font-size: clamp(2.4rem, 4.4vw, 4.3rem);
+      line-height: 1.08;
+      letter-spacing: -.035em;
+    }
+
+    h3 {
+      margin-bottom: .65rem;
+      font-size: clamp(1.35rem, 2vw, 2rem);
+      line-height: 1.25;
+    }
+
+    p,
+    li,
+    td,
+    th {
+      font-size: clamp(1.05rem, 1.55vw, 1.55rem);
+      line-height: 1.62;
+    }
+
+    .lead {
+      max-width: 34ch;
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: clamp(1.35rem, 2.2vw, 2.15rem);
+      line-height: 1.55;
+    }
+
+    .accent {
+      color: var(--accent-2);
+    }
+
+    .mark {
+      color: var(--accent);
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(22rem, .9fr);
+      gap: clamp(2rem, 5vw, 6rem);
+      align-items: center;
+    }
+
+    .split.wide-visual {
+      grid-template-columns: minmax(22rem, .82fr) minmax(0, 1.18fr);
+    }
+
+    .plain-list,
+    .numbered {
+      max-width: 46rem;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .plain-list li,
+    .numbered li {
+      position: relative;
+      padding: .75rem 0 .75rem 2rem;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .plain-list li::before {
+      content: "";
+      position: absolute;
+      top: 1.43rem;
+      left: 0;
+      width: .68rem;
+      height: .68rem;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 .35rem rgba(255, 86, 104, .13);
+    }
+
+    .numbered {
+      counter-reset: steps;
+    }
+
+    .numbered li {
+      min-height: 4.2rem;
+      padding-left: 4.25rem;
+    }
+
+    .numbered li::before {
+      counter-increment: steps;
+      content: counter(steps, decimal-leading-zero);
+      position: absolute;
+      top: .6rem;
+      left: 0;
+      color: var(--accent-2);
+      font-size: 1.6rem;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .visual {
+      position: relative;
+      overflow: hidden;
+      min-height: 22rem;
+      border: 1px solid var(--line);
+      border-radius: 1.2rem;
+      background: #080b10;
+      box-shadow: var(--shadow);
+    }
+
+    .visual img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 22rem;
+      object-fit: cover;
+      object-position: center top;
+    }
+
+    .visual.contain img {
+      object-fit: contain;
+      background: #080b10;
+    }
+
+    .visual figcaption {
+      position: absolute;
+      right: .8rem;
+      bottom: .8rem;
+      padding: .45rem .75rem;
+      border-radius: .45rem;
+      background: rgba(8, 11, 16, .84);
+      color: var(--muted);
+      font-size: .86rem;
+    }
+
+    .record-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      margin: .5rem 0 2rem;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 1rem;
+      background: var(--line);
+    }
+
+    .record-strip div {
+      min-height: 8.5rem;
+      padding: 1.2rem;
+      background: var(--surface);
+    }
+
+    .record-strip strong {
+      display: block;
+      margin-bottom: .5rem;
+      color: var(--accent-2);
+      font-size: clamp(1.25rem, 2vw, 1.9rem);
+    }
+
+    .record-strip span {
+      color: var(--muted);
+      font-size: clamp(.95rem, 1.25vw, 1.2rem);
+      line-height: 1.5;
+    }
+
+    .callout {
+      max-width: 46rem;
+      margin-top: 1.6rem;
+      padding: 1.15rem 1.35rem;
+      border-left: .35rem solid var(--accent-2);
+      background: rgba(255, 189, 89, .08);
+      color: var(--muted);
+      font-size: clamp(1rem, 1.4vw, 1.35rem);
+      line-height: 1.55;
+    }
+
+    .comparison {
+      width: min(100%, 64rem);
+      border-collapse: collapse;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .comparison th,
+    .comparison td {
+      padding: .9rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .comparison th {
+      width: 28%;
+      color: var(--accent-2);
+      font-weight: 800;
+    }
+
+    .comparison td {
+      color: var(--muted);
+    }
+
+    .warning-band {
+      max-width: 65rem;
+      padding: 1.35rem 1.55rem;
+      border: 1px solid rgba(255, 123, 135, .45);
+      border-radius: .9rem;
+      background: rgba(255, 86, 104, .09);
+    }
+
+    .warning-band strong {
+      display: block;
+      margin-bottom: .45rem;
+      color: var(--danger);
+      font-size: clamp(1.25rem, 2vw, 1.9rem);
+    }
+
+    .warning-band p {
+      margin-bottom: 0;
+      color: var(--muted);
+    }
+
+    .closing {
+      max-width: 58rem;
+    }
+
+    .closing .lead {
+      max-width: 40ch;
+    }
+
+    .source-note {
+      position: absolute;
+      right: clamp(2rem, 7vw, 8rem);
+      bottom: 5.2rem;
+      left: clamp(2rem, 7vw, 8rem);
+      color: #8993a4;
+      font-size: .85rem;
+      line-height: 1.4;
+    }
+
+    .controls {
+      position: fixed;
+      z-index: 20;
+      right: 1.35rem;
+      bottom: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: .65rem;
+      padding: .45rem;
+      border: 1px solid rgba(255, 255, 255, .12);
+      border-radius: .8rem;
+      background: rgba(11, 15, 21, .82);
+      backdrop-filter: blur(14px);
+    }
+
+    .controls button {
+      display: grid;
+      width: 2.8rem;
+      height: 2.8rem;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: .55rem;
+      background: var(--surface-2);
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .controls button:hover,
+    .controls button:focus-visible {
+      border-color: var(--accent-2);
+      outline: none;
+    }
+
+    .controls button:disabled {
+      cursor: default;
+      opacity: .35;
+    }
+
+    .counter {
+      min-width: 4.6rem;
+      color: var(--muted);
+      text-align: center;
+      font-size: .95rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .progress {
+      position: fixed;
+      z-index: 21;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      height: 3px;
+      background: rgba(255, 255, 255, .08);
+    }
+
+    .progress span {
+      display: block;
+      width: 10%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: width .2s ease;
+    }
+
+    @media (max-width: 850px) {
+      html,
+      body {
+        overflow: auto;
+      }
+
+      .slide {
+        min-height: 100svh;
+        height: auto;
+        padding: 4.5rem 1.5rem 7rem;
+      }
+
+      .split,
+      .split.wide-visual {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+
+      .visual,
+      .visual img {
+        min-height: 16rem;
+        max-height: 42vh;
+      }
+
+      .record-strip {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .source-note {
+        position: static;
+        margin-top: 2rem;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .01ms !important;
+        transition-duration: .01ms !important;
+      }
+    }
+
+    @media print {
+      @page {
+        size: 16in 9in;
+        margin: 0;
+      }
+
+      html,
+      body {
+        height: auto;
+        overflow: visible;
+        background: #fff;
+      }
+
+      .slide,
+      .slide.is-active {
+        display: flex !important;
+        width: 16in;
+        height: 9in;
+        min-height: 0;
+        break-after: page;
+        page-break-after: always;
+        animation: none;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      .controls,
+      .progress,
+      .skip-link {
+        display: none !important;
+      }
+    }
   </style>
 </head>
 <body>
+  <a class="skip-link" href="#slide-1">スライド本文へ移動</a>
 
-<div class="reveal">
-<div class="slides">
+  <main class="deck" aria-label="BioLog紹介スライド">
+    <section class="slide is-active" id="slide-1" aria-labelledby="title-1">
+      <p class="eyebrow">Personal &amp; family health record</p>
+      <h1 id="title-1">BioLogで<br><span class="accent">できること</span></h1>
+      <p class="lead">毎日の健康記録を、入力・確認・比較・保存まで。初心者向けにやさしく紹介します。</p>
+      <p class="source-note">BioLog v1.7.5 相当 / リポジトリ確認日 2026-08-15</p>
+    </section>
 
-<section>
-  <h1>BioLog</h1>
-  <p class="lead">家族の健康データを記録する自宅 OSS アプリを<br>
-  Claude Code と共に開発・公開した話</p>
-  <p class="small">
-    Streamlit + FastAPI + SQLite, Self-hosted, LAN-only by design<br>
-    2026-05-29
-  </p>
-</section>
+    <section class="slide" id="slide-2" aria-labelledby="title-2">
+      <div class="split">
+        <div>
+          <p class="eyebrow">01 / Overview</p>
+          <h2 id="title-2">毎日の健康記録を、<span class="accent">1台のPCで完結</span></h2>
+          <ul class="plain-list">
+            <li>自分・父・母の記録を分けて管理</li>
+            <li>ブラウザ画面からかんたん入力</li>
+            <li>標準ではデータをPC内に保存</li>
+          </ul>
+        </div>
+        <figure class="visual">
+          <img src="screenshots/01-top.png" alt="BioLogのトップ画面。左に絞り込み、右に家族の最新データが表示されている">
+          <figcaption>画面例（数値はダミー・一部マスク）</figcaption>
+        </figure>
+      </div>
+    </section>
 
-<section>
-  <h2>本日のお話</h2>
-  <ol>
-    <li>なぜ作ったか — 動機と要件</li>
-    <li>アーキテクチャと設計原則</li>
-    <li>開発ストーリー — Phase 1〜4</li>
-    <li>キャッシュ設計の試行錯誤</li>
-    <li>公開準備 — 個人プロジェクトを OSS に</li>
-    <li>失敗から学んだこと</li>
-    <li>Claude Code との協業</li>
-  </ol>
-</section>
+    <section class="slide" id="slide-3" aria-labelledby="title-3">
+      <p class="eyebrow">02 / What to record</p>
+      <h2 id="title-3">1日分の記録は、<span class="accent">数値とメモを一緒に</span></h2>
+      <div class="record-strip" aria-label="記録できる項目">
+        <div><strong>からだ</strong><span>体重・体温・体脂肪率・筋肉量</span></div>
+        <div><strong>循環</strong><span>収縮期血圧・拡張期血圧・脈拍</span></div>
+        <div><strong>エネルギー</strong><span>基礎代謝</span></div>
+        <div><strong>暮らし</strong><span>食事ログ・行動ログ・メモ</span></div>
+      </div>
+      <p class="lead">全部を埋める必要はありません。測れた項目か文章を、<span class="mark">1つ以上</span>入力すれば登録できます。</p>
+    </section>
 
-<section>
-  <h2>動機</h2>
-  <blockquote>
-    家族（自分 / 父 / 母）の<br>
-    <strong>体温・血圧・脈拍・体重・食事ログ・行動ログ</strong>を<br>
-    日次で記録・可視化したい。
-  </blockquote>
-  <p>必要なもの:</p>
-  <ul>
-    <li>ローカル完結（外部サーバにデータ送信しない）</li>
-    <li>Docker 1 コマンドで起動</li>
-    <li>SQLite 単一ファイルで完結</li>
-    <li>スマホからもアクセス可（LAN 内）</li>
-  </ul>
-</section>
+    <section class="slide" id="slide-4" aria-labelledby="title-4">
+      <div class="split wide-visual">
+        <div>
+          <p class="eyebrow">03 / Main screen</p>
+          <h2 id="title-4">見る・比べる・書き出すが<span class="accent">1画面</span></h2>
+          <ul class="plain-list">
+            <li>最新データをひと目で確認</li>
+            <li>期間と人を選んで絞り込み</li>
+            <li>4つのタブで迷わず操作</li>
+          </ul>
+        </div>
+        <figure class="visual contain">
+          <img src="screenshots/03-list.png" alt="BioLogの一覧画面。左に期間とユーザーの絞り込み、右にデータ一覧が表示されている">
+          <figcaption>一覧タブの画面例</figcaption>
+        </figure>
+      </div>
+    </section>
 
-<section>
-  <h2>構成</h2>
-  <pre><code class="language-text">┌────────────────┐    HTTP    ┌──────────────────┐
-│ Streamlit (8501)│ ─────────►│ FastAPI (8766)   │
-│ - UI            │            │ - POST/PUT/DELETE│
-│ - read cache    │            │ - GET (biocore)  │
-└────────────────┘            └──────┬───────────┘
-                                     │ Queue
-                                     ▼
-                             ┌──────────────────┐
-                             │ Worker (1 thread)│
-                             │ - 単一 Writer    │
-                             └──────┬───────────┘
-                                    ▼
-                             ┌──────────────────┐
-                             │ SQLite           │
-                             │ /data/biolog.db  │
-                             └──────────────────┘</code></pre>
-  <p class="small">2 コンテナで完結（API + UI）</p>
-</section>
+    <section class="slide" id="slide-5" aria-labelledby="title-5">
+      <p class="eyebrow">04 / Daily flow</p>
+      <h2 id="title-5">使い方は<span class="accent">「選ぶ → 記録 → 確認」</span></h2>
+      <ol class="numbered">
+        <li><strong>人と日付を選ぶ</strong><br>自分・父・母から記録する人を決めます。</li>
+        <li><strong>測定値やメモを入力する</strong><br>空欄があってもかまいません。</li>
+        <li><strong>登録して振り返る</strong><br>最新値・グラフ・一覧で確認します。</li>
+      </ol>
+      <div class="callout">反映に少し時間がかかるときは、左側の「更新」を押すと最新データを取り直せます。</div>
+    </section>
 
-<section>
-  <h2>設計原則</h2>
-  <div class="two-col">
-    <div class="col">
-      <h3>守るべき制約</h3>
-      <ul>
-        <li>書き込みは Worker 1 本</li>
-        <li><code>sqlite3.connect()</code> は db_manager のみ</li>
-        <li><code>PRAGMA journal_mode=WAL</code> 禁止</li>
-        <li>FastAPI 内で DB 直接操作禁止</li>
-        <li>Streamlit から DB 直接アクセス禁止</li>
+    <section class="slide" id="slide-6" aria-labelledby="title-6">
+      <div class="split">
+        <div>
+          <p class="eyebrow">05 / Graph</p>
+          <h2 id="title-6">変化は<span class="accent">4種類のグラフ</span>で追える</h2>
+          <ul class="plain-list">
+            <li>体重</li>
+            <li>体温</li>
+            <li>血圧（上・下）</li>
+            <li>脈拍</li>
+          </ul>
+          <div class="callout">複数の人を選ぶと、色分けして同じ期間を比べられます。</div>
+        </div>
+        <figure class="visual contain">
+          <img src="screenshots/02-graph.png" alt="体重、体温、脈拍、血圧を表示したBioLogの時系列グラフ画面">
+          <figcaption>グラフタブの画面例</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="slide" id="slide-7" aria-labelledby="title-7">
+      <p class="eyebrow">06 / List &amp; CSV</p>
+      <h2 id="title-7">一覧は20件ずつ、CSVは<span class="accent">期間の全件</span></h2>
+      <table class="comparison" aria-label="一覧とCSVの違い">
+        <tbody>
+          <tr><th>画面の一覧</th><td>新しい記録から20件ずつ表示</td></tr>
+          <tr><th>長い文章</th><td>画面では省略し、必要な部分だけ展開</td></tr>
+          <tr><th>CSV</th><td>選んだ人・期間に合う全件を全文で保存</td></tr>
+          <tr><th>文字コード</th><td>Excelで開きやすいUTF-8 BOM付き</td></tr>
+        </tbody>
+      </table>
+      <div class="callout">CSVには健康情報が含まれます。公開場所や共有フォルダーへの保存には注意してください。</div>
+    </section>
+
+    <section class="slide" id="slide-8" aria-labelledby="title-8">
+      <p class="eyebrow">07 / One day, one record</p>
+      <h2 id="title-8">同じ人・同じ日は<span class="accent">1件に整理</span></h2>
+      <ul class="plain-list">
+        <li>同じ日にもう一度登録しても、行は増えません</li>
+        <li>入力した測定値だけを更新します</li>
+        <li>空欄の測定値は、前の値を残します</li>
+        <li>食事・行動ログは、重ならない行を追加します</li>
       </ul>
-    </div>
-    <div class="col">
-      <h3>なぜ SQLite?</h3>
-      <ul>
-        <li>ファイル 1 つ。バックアップは <code>cp</code></li>
-        <li>別 DB サーバ不要</li>
-        <li>家族規模なら年間数千件</li>
-        <li>Windows NTFS で WAL は I/O エラー → DELETE モード強制</li>
+      <div class="callout">入力ミスは「修正・削除」から直せます。削除は対象を確認してから実行します。</div>
+    </section>
+
+    <section class="slide" id="slide-9" aria-labelledby="title-9">
+      <p class="eyebrow">08 / Privacy</p>
+      <h2 id="title-9">ローカル保存でも、<span class="accent">公開設定には注意</span></h2>
+      <div class="warning-band">
+        <strong>標準は同じPCだけで使う設計です</strong>
+        <p>データはSQLiteファイルに保存され、健康記録を外部へ自動送信しません。一方で、ログイン認証・HTTPS・レート制限はありません。</p>
+      </div>
+      <ul class="plain-list" style="margin-top:1.5rem">
+        <li>localhost限定のまま使う</li>
+        <li>そのままインターネットへ公開しない</li>
+        <li>重要な記録は定期的にバックアップする</li>
       </ul>
-    </div>
-  </div>
-</section>
+    </section>
 
-<section>
-  <h2>開発の道のり</h2>
-  <table>
-    <tr><th>Phase</th><th>内容</th><th>タグ</th></tr>
-    <tr><td>H1</td><td>Streamlit 起動ブロッカー修正</td><td><span class="tag fix">FIX</span></td></tr>
-    <tr><td>H2</td><td>migration に CREATE TABLE 追加</td><td><span class="tag feat">FEAT</span></td></tr>
-    <tr><td>H3</td><td>entrypoint.sh で migration 自動化</td><td><span class="tag feat">FEAT</span></td></tr>
-    <tr><td>H4</td><td>API ログの PII マスク</td><td><span class="tag feat">FEAT</span></td></tr>
-    <tr><td>—</td><td>cache invalidation 刷新（v1.5.5〜v1.5.7）</td><td><span class="tag refactor">REFACTOR</span></td></tr>
-    <tr><td>—</td><td>公開準備 — README / LICENSE / 仕様書</td><td><span class="tag feat">FEAT</span></td></tr>
-  </table>
-  <p class="small">いずれも plan mode で方針を固めてから実装</p>
-</section>
+    <section class="slide" id="slide-10" aria-labelledby="title-10">
+      <p class="eyebrow">09 / Fit</p>
+      <h2 id="title-10">このアプリが<span class="accent">向く人・向かない用途</span></h2>
+      <table class="comparison" aria-label="BioLogが向く用途と向かない用途">
+        <tbody>
+          <tr><th>向く</th><td>自分や家族の毎日の記録、少人数、ローカル運用</td></tr>
+          <tr><th>向く</th><td>グラフでの振り返り、CSVでの個人保管</td></tr>
+          <tr><th>向かない</th><td>医療診断、治療判断、業務での第三者情報管理</td></tr>
+          <tr><th>向かない</th><td>インターネット公開、大人数利用、権限管理</td></tr>
+        </tbody>
+      </table>
+      <div class="callout">BioLogは日々の記録を助ける道具です。医学的な判断は専門家に相談してください。</div>
+    </section>
 
-<section>
-  <h2>Phase 1 — 起動ブロッカー修正</h2>
-  <p>監査で発覚：Streamlit が <strong>SyntaxError で起動不能</strong></p>
-  <pre><code class="language-python">def is_truncated(full: str, limit: int) -> bool:
-    return len(full) > limit
-    except Exception as e:   # ← orphan!
-        st.error(f"API エラー: {e}")
-        return None</code></pre>
-  <p>原因：以前のリファクタで <code>api_get()</code> の 2 段 except 構造の片方が孤立したまま残った</p>
-  <p class="footnote">教訓：「動いている」と「壊れていない」は別物。静的解析と実機検証は両輪。</p>
-</section>
+    <section class="slide" id="slide-11" aria-labelledby="title-11">
+      <div class="closing">
+        <p class="eyebrow">10 / Start</p>
+        <h2 id="title-11">まずは<span class="accent">3ステップ</span>で始めよう</h2>
+        <ol class="numbered">
+          <li>Docker Desktopを起動する</li>
+          <li><code>BioLog起動.bat</code>を実行する</li>
+          <li>ブラウザの <code>http://localhost:8501</code> で記録する</li>
+        </ol>
+        <p class="lead" style="margin-top:1.7rem">記録する → 変化を見る → 必要ならCSVに残す。これがBioLogの基本です。</p>
+      </div>
+      <p class="source-note">内容の根拠: README.md、CHANGELOG.md、画面・API・入力検証の現行コード、PRIVACY_POLICY.md、TERMS_OF_SERVICE.md。外部素材・外部通信は使用していません。</p>
+    </section>
+  </main>
 
-<section>
-  <h2>Phase 2 — DB スキーマ補完</h2>
-  <p>migration ファイルに <strong>CREATE TABLE 自体が無かった</strong>（ALTER のみ）</p>
-  <p>新規環境では「テーブル不在」で API 起動失敗。</p>
-  <h3>採用した解：CREATE と ALTER の併存構造</h3>
-  <blockquote>
-    CREATE TABLE と ALTER TABLE は <strong>冗長ではなく</strong><br>
-    環境差吸収のための <strong>必須構造</strong>。<br>
-    削除・統合は禁止。
-  </blockquote>
-  <ul>
-    <li>既存 DB ← ALTER のみが意味を持つ</li>
-    <li>新規 DB ← CREATE のみが意味を持つ</li>
-    <li>両方残すことで両環境を 1 ファイルでカバー</li>
-  </ul>
-</section>
+  <nav class="controls" aria-label="スライド操作">
+    <button id="prev" type="button" aria-label="前のスライド" title="前へ（←）">←</button>
+    <span class="counter" id="counter" aria-live="polite">1 / 11</span>
+    <button id="next" type="button" aria-label="次のスライド" title="次へ（→ / Space）">→</button>
+  </nav>
+  <div class="progress" aria-hidden="true"><span id="progress-bar"></span></div>
 
-<section>
-  <h2>Phase 3 — entrypoint.sh で migration 自動化</h2>
-  <pre><code class="language-bash">#!/bin/sh
-set -e
+  <script>
+    (() => {
+      const slides = [...document.querySelectorAll('.slide')];
+      const previousButton = document.getElementById('prev');
+      const nextButton = document.getElementById('next');
+      const counter = document.getElementById('counter');
+      const progressBar = document.getElementById('progress-bar');
+      const hashMatch = location.hash.match(/^#slide-(\d+)$/);
+      let index = hashMatch ? Number(hashMatch[1]) - 1 : 0;
 
-echo "[entrypoint] running migrations..."
-python migrations/runner.py
-echo "[entrypoint] migrations complete, starting API..."
+      if (!Number.isInteger(index) || index < 0 || index >= slides.length) {
+        index = 0;
+      }
 
-exec uvicorn api:app --host 0.0.0.0 --port 8766</code></pre>
-  <ul>
-    <li><code>set -e</code> + 直列実行で migration 失敗時は API 起動を阻止</li>
-    <li><code>exec uvicorn</code> で PID 1 を引き継ぎ SIGTERM 正常伝搬</li>
-    <li>「手動 migration 忘れ」を構造的に排除</li>
-  </ul>
-</section>
+      const render = (nextIndex, updateHash = true) => {
+        index = Math.max(0, Math.min(slides.length - 1, nextIndex));
+        slides.forEach((slide, slideIndex) => {
+          const active = slideIndex === index;
+          slide.classList.toggle('is-active', active);
+          slide.setAttribute('aria-hidden', String(!active));
+        });
+        previousButton.disabled = index === 0;
+        nextButton.disabled = index === slides.length - 1;
+        counter.textContent = `${index + 1} / ${slides.length}`;
+        progressBar.style.width = `${((index + 1) / slides.length) * 100}%`;
+        document.title = `${index + 1}/${slides.length} BioLogでできること`;
+        if (updateHash) {
+          history.replaceState(null, '', `#slide-${index + 1}`);
+        }
+      };
 
-<section>
-  <h2>Phase 4 — API ログの PII マスク</h2>
-  <p>監査で発覚：<code>docker logs biolog-api</code> に <code>user_id</code> / <code>request_id</code> / UUID / email が平文出力</p>
-  <pre><code class="language-python">def mask_pii(text: str) -> str:
-    if text is None:
-        return ""
-    text = str(text)
-    for pattern, repl in _PATTERNS:
-        text = pattern.sub(repl, text)
-    return text</code></pre>
-  <p>たった 1 行追加で全ログにマスクが効く設計：</p>
-  <pre><code class="language-python">print(mask_pii(json.dumps(entry, ensure_ascii=False)), flush=True)</code></pre>
-</section>
+      previousButton.addEventListener('click', () => render(index - 1));
+      nextButton.addEventListener('click', () => render(index + 1));
 
-<section>
-  <h2>Cache invalidation の試行錯誤</h2>
-  <table>
-    <tr><th>バージョン</th><th>方式</th><th>問題</th></tr>
-    <tr><td>v1.3.8</td><td>version 引数 + session_state（init=0）</td><td>翌日跨ぎで <code>(uid, 0)</code> 衝突 → 前日値</td></tr>
-    <tr><td>v1.5.5</td><td><code>fetch_*.clear()</code> + rerun</td><td>EC ラグで stale 取得</td></tr>
-    <tr><td>v1.5.7</td><td>version 引数（init=<code>int(time.time())</code>）</td><td>翌日跨ぎ衝突を構造的に回避</td></tr>
-  </table>
-  <p class="footnote">「失敗 → 別解 → 旧解の修正版」のループ。Claude との対話で <strong>毎回設計上の差分を言語化</strong> したのが効いた。</p>
-</section>
+      addEventListener('keydown', (event) => {
+        const activeTag = document.activeElement?.tagName;
+        if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT') return;
 
-<section>
-  <h2>Cache invalidation 確定形 (v1.5.7)</h2>
-  <pre><code class="language-python">if "data_version" not in st.session_state:
-    st.session_state.data_version = int(time.time())
+        if (event.key === 'ArrowRight' || event.key === 'PageDown' || event.key === ' ') {
+          event.preventDefault();
+          render(index + 1);
+        } else if (event.key === 'ArrowLeft' || event.key === 'PageUp') {
+          event.preventDefault();
+          render(index - 1);
+        } else if (event.key === 'Home') {
+          event.preventDefault();
+          render(0);
+        } else if (event.key === 'End') {
+          event.preventDefault();
+          render(slides.length - 1);
+        }
+      });
 
-@st.cache_data
-def fetch_latest(uid: str, version: int):
-    # version is intentionally unused for cache invalidation
-    return api_get(f"/api/health/records/latest/{uid}", ...)
+      addEventListener('hashchange', () => {
+        const match = location.hash.match(/^#slide-(\d+)$/);
+        if (match) render(Number(match[1]) - 1, false);
+      });
 
-# 書き込み成功時
-st.session_state.data_version += 1
-st.rerun()</code></pre>
-  <ul>
-    <li>init を <code>int(time.time())</code> → 翌日跨ぎ衝突を構造的に排除</li>
-    <li><code>fetch_*.clear()</code> は使わない（version 更新で代替）</li>
-    <li><code>clear_on_submit=True</code> で form 自動リセット</li>
-  </ul>
-</section>
-
-<section>
-  <h2>公開準備 — OSS としての作法</h2>
-  <div class="two-col">
-    <div class="col">
-      <h3>取り組んだこと</h3>
-      <ul>
-        <li>個人パスの完全除去</li>
-        <li><code>.env</code> 化（hardcode 撤廃）</li>
-        <li>LICENSE (MIT) + 免責事項</li>
-        <li>README に <strong>「Not For」</strong> 章</li>
-        <li>Known Issues / Untested 明示</li>
-        <li><code>.gitattributes</code> で改行コード固定</li>
-      </ul>
-    </div>
-    <div class="col">
-      <h3>方針</h3>
-      <ul>
-        <li>問題を隠さない</li>
-        <li>未検証範囲を明示する</li>
-        <li>LAN 内専用と明記する</li>
-        <li>SQLite の前提を正直に書く</li>
-      </ul>
-    </div>
-  </div>
-</section>
-
-<section>
-  <h2>失敗 ① — データ消失 × 2</h2>
-  <p>公開準備中、AI（私）が破壊的操作を 2 度実行：</p>
-  <ol>
-    <li><strong>docker-compose.yml の volume パス変更</strong><br>
-        <span class="small">env 化と同時にデフォルト値変更 → container が新しい空ディレクトリをマウント</span></li>
-    <li><strong>動作中の <code>.env</code> を削除</strong><br>
-        <span class="small">「.gitignore で守られているのに念のため削除」という過剰判断</span></li>
-  </ol>
-  <p class="lead center">どちらもバックアップで救出 🙇</p>
-  <p class="footnote center">教訓：<strong>.gitignore で守られているなら物理削除は不要</strong>。破壊的操作は事前確認が絶対。</p>
-</section>
-
-<section>
-  <h2>失敗 ② — ドキュメント漏れ</h2>
-  <p>公開後にユーザーが気付いた：</p>
-  <blockquote>「食事ログや行動ログの情報が全体的に抜けてます」</blockquote>
-  <p>コード側（worker / biocore / schemas / migrate / UI）は完全対応。<br>
-     <strong>しかし API リファレンス skills.md だけ取り残されていた。</strong></p>
-  <p class="footnote">教訓：「コード = 仕様」ではない。OSS では <strong>ドキュメントも一次成果物</strong>。</p>
-</section>
-
-<section>
-  <h2>Claude との協業</h2>
-  <h3>Plan Mode を徹底活用</h3>
-  <ul>
-    <li>実装前に必ず方針を <strong>プランファイル</strong> に書き出す</li>
-    <li>採用方針・触らないもの・触るもの・検証手順を明示</li>
-    <li>「禁止事項」が地味に効く（暴走防止）</li>
-  </ul>
-  <h3>反復改善のリズム</h3>
-  <ul>
-    <li>plan → reject → 修正版 → reject → … → approve</li>
-    <li>1 イテレーション当たりの差分は小さい</li>
-    <li>毎回 <strong>なぜ前案がダメか</strong> を言語化</li>
-  </ul>
-</section>
-
-<section>
-  <h2>AI と作るときに効いたこと</h2>
-  <ul>
-    <li><strong>「動かす AI」ではなく「議論する AI」として使う</strong></li>
-    <li>毎回 <strong>「なぜそうするのか」</strong> を AI に説明させる</li>
-    <li>AI の判断ミスは <strong>こちらが気付いて止める</strong>（過剰判断・推測ベース）</li>
-    <li><strong>破壊的操作は必ず人間が確認</strong>（特に DB / .env / volume）</li>
-    <li>監査・テスト・公開準備など <strong>「機械的だが知識量必要」</strong> な作業に強い</li>
-  </ul>
-  <p class="footnote">AI ペアプロは「副操縦士」。判断責任は人間側に残る。</p>
-</section>
-
-<section>
-  <h2>公開</h2>
-  <ul>
-    <li>📦 GitHub Public Repository</li>
-    <li>📜 MIT License + 日本語免責事項</li>
-    <li>🏷 v0.1.0 タグ付き Release</li>
-    <li>📖 README / 仕様書 / 操作説明書 / API リファレンス / CHANGELOG</li>
-    <li>🖼 スクリーンショット（ダミーデータ）</li>
-  </ul>
-  <p class="lead center">「ローカル完結型 self-host OSS」として<br>
-  他の人が <code>git clone</code> → <code>docker compose up</code> できる状態に。</p>
-</section>
-
-<section>
-  <h2>まとめ</h2>
-  <ul>
-    <li>個人プロジェクトでも <strong>監査 → 修正 → 公開準備</strong> のサイクルは効く</li>
-    <li>SQLite + 単一 Writer は個人/家族規模で十分強力</li>
-    <li>Eventual Consistency を許容するなら <strong>UX 文言で補正</strong> する</li>
-    <li>cache invalidation は「失敗 → 別解 → 旧解の修正版」を恐れない</li>
-    <li>AI との協業は <strong>plan mode + 議論</strong> が肝</li>
-  </ul>
-  <p class="lead center">家族の健康記録から、OSS 公開まで。<br>
-  小さく・正直に・継続的に。</p>
-</section>
-
-<section>
-  <h1 class="center">Thank You</h1>
-  <p class="center lead">BioLog — Personal & family health record tracker</p>
-  <p class="center small">
-    GitHub: <code>github.com/shinosan1/biolog</code><br>
-    License: MIT (LAN-only by design)<br>
-    Built with Claude Code 🤖
-  </p>
-</section>
-
-</div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
-
-<script>
-  Reveal.initialize({
-    hash: true,
-    slideNumber: 'c/t',
-    controls: true,
-    progress: true,
-    transition: 'slide',
-    plugins: [RevealHighlight, RevealNotes]
-  });
-</script>
-
+      render(index, false);
+    })();
+  </script>
 </body>
 </html>

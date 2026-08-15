@@ -124,7 +124,18 @@ async def create_record(request: Request):
     log({"event": "REQ_START", "request_id": rid})
     log({"event": "API_IN", "fields": list(raw.keys())})
 
-    preprocessed = pp.preprocess_record(raw)
+    try:
+        preprocessed = pp.preprocess_record(raw)
+    except ValueError as e:
+        log({
+            "event": "PREPROCESS",
+            "status": "error",
+            "endpoint": "/api/health/record",
+            "error_type": type(e).__name__,
+            "fields": sorted(raw.keys()),
+        })
+        raise HTTPException(status_code=422, detail=str(e))
+
     generated = [k for k in ("request_id", "date") if not raw.get(k)]
 
     if generated:

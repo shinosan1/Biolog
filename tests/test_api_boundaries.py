@@ -63,3 +63,61 @@ def test_create_rejects_non_object_and_invalid_json(tmp_path, monkeypatch):
         with pytest.raises(HTTPException) as exc:
             asyncio.run(api.create_record(request))
         assert exc.value.status_code == 422
+
+
+def test_create_rejects_non_numeric_integer_fields(tmp_path, monkeypatch):
+    api = _load_api(tmp_path, monkeypatch)
+
+    class PayloadRequest:
+        def __init__(self, payload):
+            self._payload = payload
+
+        async def json(self):
+            return self._payload
+
+    # "1e309" と "inf" は float() を通過し int() で OverflowError になる。
+    # OverflowError は ValueError の派生ではないため、捕捉漏れがあると
+    # 422 ではなく 500 になる。
+    for field in ("pulse", "bmr", "systolic_bp", "diastolic_bp"):
+        for value in ("abc", "inf", "1e309"):
+            request = PayloadRequest({
+                "request_id": "rid",
+                "date": "2026-06-25",
+                "user_id": "self",
+                "weight": 61.2,
+                field: value,
+            })
+
+            with pytest.raises(HTTPException) as exc:
+                asyncio.run(api.create_record(request))
+
+            assert exc.value.status_code == 422
+            assert field in exc.value.detail
+
+
+def test_create_accepts_float_valued_integer_fields(tmp_path, monkeypatch):
+    api = _load_api(tmp_path, monkeypatch)
+    enqueued = {}
+
+    def _fake_enqueue(operation, payload):
+        enqueued["operation"] = operation
+        enqueued["payload"] = payload
+        return {"status": "success", "id": 1}
+
+    monkeypatch.setattr(api, "_enqueue_and_wait", _fake_enqueue)
+
+    class PayloadRequest:
+        async def json(self):
+            return {
+                "request_id": "rid",
+                "date": "2026-06-25",
+                "user_id": "self",
+                "pulse": 72.9,
+                "bmr": "1400.0",
+            }
+
+    asyncio.run(api.create_record(PayloadRequest()))
+
+    assert enqueued["operation"] == "insert"
+    assert enqueued["payload"]["pulse"] == 72
+    assert enqueued["payload"]["bmr"] == 1400
