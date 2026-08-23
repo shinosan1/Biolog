@@ -149,6 +149,39 @@ def test_create_measurements_use_isolated_text_input_keys(monkeypatch):
     ]
 
 
+def test_create_measurement_state_keys_match_the_rendered_widget_keys(monkeypatch):
+    import form_components
+
+    fake = _FakeStreamlit()
+    monkeypatch.setattr(form_components, "st", fake)
+
+    for field in MEASUREMENT_FIELDS:
+        form_components._create_measurement_input(field, f"create_{field.name}")
+
+    assert [call["key"] for call in fake.calls] == list(
+        form_components.create_measurement_state_keys("create")
+    )
+
+
+def test_create_form_state_is_cleared_only_after_a_successful_registration():
+    from views.create import (
+        CREATE_RESET_FLAG,
+        create_form_state_keys,
+        reset_create_form_state,
+    )
+
+    typed = {key: "typed" for key in create_form_state_keys()}
+    session_state = {**typed, "unrelated": "keep"}
+
+    # 入力エラー・APIエラー時はフラグが立たないので入力を保持する。
+    reset_create_form_state(session_state)
+    assert session_state == {**typed, "unrelated": "keep"}
+
+    session_state[CREATE_RESET_FLAG] = True
+    reset_create_form_state(session_state)
+    assert session_state == {"unrelated": "keep"}
+
+
 def test_external_change_updates_an_unedited_field():
     previous = _values(body_fat=None)
     api = _values(body_fat=18.0)

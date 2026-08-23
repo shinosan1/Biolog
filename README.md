@@ -277,6 +277,8 @@ BIOLOG_DATA_DIR=/var/lib/biolog
 - ✅ 深夜 0〜9 時 (JST) に登録すると date が前日になる → v1.5.0 で `jst_date()` 統一
 - ✅ 新規環境で `health_records` テーブル不在で起動失敗 → v1.5.2 で `CREATE TABLE IF NOT EXISTS` 追加
 - ✅ migration runner の手動実行忘れ → v1.5.3 で entrypoint.sh による自動化
+- ✅ 新規登録成功後もフォームに前回の入力値が残る → v1.7.6 で修正（登録成功時のみリセット、エラー時は入力を維持）
+- ✅ 同一ユーザー・同一日付の再登録で API が `id=0` を返す → v1.7.6 で修正（UPSERT 後に実レコード ID を取得）
 
 ### Open（既知の未解決）
 - ⚠ **migration_lock の stale 残存**：コンテナ強制終了で finally が走らないとロックが残る。手動 `DELETE FROM migration_lock WHERE id = 1` で復旧

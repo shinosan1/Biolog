@@ -30,6 +30,14 @@ def _number_input(field, value, key: str):
     return st.number_input(**kwargs)
 
 
+def create_measurement_state_keys(key_prefix: str) -> tuple[str, ...]:
+    """Session state keys held by the create-mode measurement inputs."""
+    return tuple(
+        f"{key_prefix}_{field.name}_text"
+        for field in MEASUREMENT_FIELDS
+    )
+
+
 def _create_measurement_input(field, key: str):
     """Render an optional create measurement without number_input min fallback."""
     return st.text_input(

@@ -4,6 +4,49 @@ BioLog プロジェクトの全変更履歴です。
 形式は [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/) に従います。
 
 ---
+## [1.7.6] — 2026-08-23
+
+### Fixed
+- **新規登録フォームの状態リセット**
+  - 新規登録成功後に前回の入力内容がフォームへ残る問題を修正
+  - 測定値だけでなく、ユーザー、日付、メモ、食事ログ、行動ログもリセット対象
+  - リセットは登録成功時のみ。入力エラー・API エラー時は入力値を維持する
+  - v1.5.7 で `clear_on_submit=True` により修正されていた挙動が、ビュー分割後のコードで
+    退行していたもの。`clear_on_submit` は submit のたびに入力が消えるため再採用せず、
+    削除タブの `clear_del_id` と同じ deferred-clear 方式で実装した
+  - 実装：全ウィジェットへ明示的な Session State キーを付与し、登録成功時のみ
+    `clear_create_form` を設定する。次 run のウィジェット生成前に
+    `reset_create_form_state()` が該当キーを削除する
+- **UPSERT 時の返却 ID**
+  - 同一ユーザー・同一日付への再登録で、実在するレコード ID ではなく `id=0` が返る問題を修正
+  - SQLite の `ON CONFLICT ... DO UPDATE` が UPDATE 経路に入ると INSERT が発生せず、
+    書き込みごとに接続を作り直す本構成では `cursor.lastrowid` が 0 のままになる
+  - UPSERT 後に `user_id` + `date` から実際のレコード ID を取得して返すよう変更
+  - INSERT、UPSERT、`request_id` 重複のすべてで実在する正しい ID を返す
+  - 同一ユーザー・同一日付の UPSERT 仕様、`request_id` UNIQUE による冪等性、
+    同日ログの追記・重複排除、公開 API 形式、DB スキーマはいずれも変更なし
+
+### Added
+- 回帰テストを追加（147 件 → 160 件）
+  - `tests/test_api_write_ids.py`：INSERT 時／同日 UPSERT 時／連続 UPSERT 時／
+    `request_id` 重複時／worker 経由の返却 ID
+  - `tests/test_streamlit_crud_flows.py`：実際の `render_create()` / `render_edit()` を
+    Streamlit の AppTest で駆動し、登録成功後のリセット、入力エラー・API エラー時の入力保持、
+    ユーザー切替時の日付選択、選択中レコード削除後の日付選択、
+    日付往復後の PUT 対象 ID と送信内容の一致を検証
+  - `tests/test_streamlit_form_state.py`：Session State キー定義のドリフト検知と
+    `reset_create_form_state()` の単体テストを追加
+- プロジェクト運用ルールをリポジトリ直下の `CLAUDE.md` として追加
+  - 3 拠点（開発 C / 実行 D / 公開 P）の同期手順、モデル分担、不変条件、
+    ドキュメント・ハッシュの更新順序を記載
+  - 既存 `.gitignore` の `CLAUDE.md` パターンにより GitHub へは公開しない
+
+### Note
+- `time_utils` は `biolog_api` と `biolog_streamlit` の両方に同名モジュールが存在し、
+  `tests/conftest.py` の `sys.path` 順では API 側が先に解決される。今回追加した
+  Streamlit のフローテストは `tests/test_created_at_timezone.py` と同じフィクスチャ方式で
+  `sys.modules` / `sys.path` を退避・復元する。製品コード側の構成は変更していない
+
 ## [1.7.5] — 2026-08-15
 
 ### Changed

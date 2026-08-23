@@ -85,7 +85,17 @@ def insert_record(payload: dict) -> dict:
                     payload.get("memo") or "",
                 ),
             )
-            return {"id": cur.lastrowid}
+            # ON CONFLICT が DO UPDATE 側に入ると、その接続では INSERT が発生せず
+            # cursor.lastrowid が 0 のままになる。接続は書き込みごとに作り直すため、
+            # UPSERT 後は必ず実レコードの id を引き直す。
+            row = conn.execute(
+                """
+                SELECT id FROM health_records
+                WHERE user_id = ? AND date = ?
+                """,
+                (payload["user_id"], payload["date"]),
+            ).fetchone()
+            return {"id": row["id"] if row is not None else cur.lastrowid}
         except sqlite3.IntegrityError as e:
             if "request_id" in str(e).lower():
                 # DB責任: UNIQUE(request_id) 衝突 → SELECT で既存 id を返す（冪等）
