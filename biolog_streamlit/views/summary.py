@@ -1,7 +1,7 @@
 import streamlit as st
 
 from api_client import ApiClientError
-from cache import fetch_latest
+from cache import current_data_version, fetch_latest
 from config import USER_IDS, USER_LABELS
 
 
@@ -12,7 +12,7 @@ def render_summary():
         with card_cols[i]:
             st.markdown(f"### {USER_LABELS[uid]}")
             try:
-                latest = fetch_latest(uid)
+                latest = fetch_latest(uid, current_data_version())
             except ApiClientError as e:
                 st.error(f"API エラー: {e.message}")
                 latest = None

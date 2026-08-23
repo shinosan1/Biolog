@@ -2,7 +2,7 @@ import pandas as pd
 import streamlit as st
 
 from api_client import ApiClientError
-from cache import fetch_range_data
+from cache import current_data_version, fetch_range_data
 from charts import plot_blood_pressure, plot_metric
 
 
@@ -13,7 +13,9 @@ def render_graph(selected_users: list, date_start, date_end):
         st.info("サイドバーでユーザーを1人以上選択してください。")
     else:
         try:
-            data = fetch_range_data(str(date_start), str(date_end))
+            data = fetch_range_data(
+                str(date_start), str(date_end), current_data_version()
+            )
         except ApiClientError as e:
             st.error(f"API エラー: {e.message}")
             data = None

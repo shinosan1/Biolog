@@ -4,6 +4,129 @@ BioLog プロジェクトの全変更履歴です。
 形式は [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/) に従います。
 
 ---
+## [1.7.8] — 2026-08-24
+
+### Fixed
+- **読み取りキャッシュの version 機構が失われていた退行を修正**
+  - v1.5.7（コミット `951c844`「fix: 新規登録後の stale 表示と form 状態残留を修正」）で
+    導入された `data_version` が、v1.6.0（コミット `5411324`「Release v1.6.0 refactor and
+    test baseline」）の非破壊分割の際に消えていた
+  - CHANGELOG・コミットメッセージ・コードコメント・テストのいずれにも再廃止の意図は
+    確認できず、v1.6.0 の記載はむしろ「cache clear / rerun のタイミングは維持」だった
+    ため、意図的な廃止ではなく退行と判定した
+  - 同じ v1.5.7 のコミットに含まれていた「新規登録フォームの状態残留」の修正も
+    同時に失われており、そちらは v1.7.6 で先に復元済み
+  - v1.5.7 の意図を現在の分割後コードへ復元：`cache.py` に `current_data_version()` /
+    `bump_data_version()` を追加し、`fetch_latest` / `fetch_range_data` の cache key へ
+    `version` を追加、`clear_health_caches()` で世代を進める
+  - 既存の per-function `.clear()` と `ttl=10` は削除せず併用する。
+    `.clear()` はプロセス全体の破棄、`data_version` はセッション単位の世代管理、
+    `ttl=10` は反映前の値を取得した場合の滞留時間の上限で、役割が異なる
+  - `data_version` の初期値は `int(time.time())`。0 起点はセッション跨ぎでキャッシュキーが
+    衝突するため（v1.5.5 で旧 version 機構を廃止した原因）、v1.5.7 と同じ方式を維持する
+  - 呼び出し側は `views/summary.py` と `views/graph.py` のみ変更。API・DB スキーマ・
+    公開 API 形式・書き込み経路は変更なし
+
+### Added
+- `tests/test_streamlit_cache_version.py`（7 件）を追加
+  - 初期 version が時刻由来で 0 でないこと、書き込みが無ければ据え置かれること、
+    `clear_health_caches()` で 1 進むこと、cache key に `version` が含まれること、
+    `summary.py` / `graph.py` が現在の version を渡していること、
+    「更新」「新規登録」「修正」「削除」の 4 経路が invalidate を呼ぶこと、
+    `.clear()` と TTL が併存していること
+- `README.md` の用語解説に「ディスク / メモリ」を追加
+
+### Changed
+- `README.md` の `Cache Invalidation` 節を現行実装（`.clear()` / `data_version` / TTL の
+  三層）と実際の履歴（v1.5.5 廃止 → v1.5.7 再導入 → v1.6.0 で退行 → v1.7.8 で復元）に合わせて修正
+- `README.md` の `Known Issues / Limitations` の `Resolved` に今回の退行修正を追記
+- `README.md` の用語解説「キャッシュ」の項を、現行の三層構成の説明へ更新
+- `CLAUDE.md` の「BioLog 固有の不変条件」にキャッシュ version 機構を追加
+
+### Note
+
+**`ttl=10` の導入履歴（記録漏れの補足）**
+
+- `@st.cache_data(ttl=10)` は、**2026-07-27 のコミット `f6d2da8`**
+  「Update BioLog stability, security, and diagnostics」で導入されている
+- 当時の CHANGELOG への記録が漏れていたため、ここで履歴として補足する
+  （**v1.7.8 で新規に導入したものではない**）
+- v1.6.0 時点の `cache.py` は `@st.cache_data`（TTL 指定なし）だった
+- v1.7.8 現在も三層 Cache Invalidation の 1 つとして使用しており、
+  役割は「反映前の値を掴んでしまった場合の滞留時間の上限」
+
+**設計文書の追随（2026-08-24）**
+
+- `docs/コード解説.md` を現行の三層 Cache Invalidation へ更新。
+  旧ルール「`session_state` にバージョン番号を持たせる方式は禁止」を削除し、
+  「version 機構を単独で使わず、`.clear()` と `ttl=10` を含む三層構成を維持する」へ改めた
+- `biolog_streamlit/仕様書.md` は **v1.5.5 時点の履歴スナップショット**であるため本文は保存し、
+  冒頭に現行仕様ではない旨と現行の三層構成を注記した（ルール 9 にも参照を追加）
+- `biolog_streamlit/README.md` の `Cache Invalidation` 節と `Resolved` 項が
+  現行コードと矛盾していたため、現行仕様へ追随した
+- ドキュメントのみの変更のため、製品バージョンは上げていない
+
+**ドキュメント構造の整理（2026-08-24）**
+
+- **ルート `README.md` をプロジェクト全体の唯一の正本として明確化した**
+- `biolog_streamlit/README.md` はルート README のほぼ全文複製（372 行）になっており、
+  v1.7.6 / v1.7.7 / v1.7.8 の内容が追随していなかったため、
+  **Streamlit フロントエンド固有の補助 README（57 行）へ整理**した。
+  セットアップ・Docker 構成・Known Issues・用語解説・License 等はルート README への参照に置き換え、
+  このディレクトリの責務（各ファイルの担当、`BIOLOG_API_URL`、`.streamlit/config.toml`）だけを残した
+- `docs/コード解説.md` に残っていた旧パス（`biolog_streamlit/` 配下の `CLAUDE.md`）への参照 3 箇所を、
+  現在の配置であるリポジトリ直下の `CLAUDE.md` へ修正した
+- `CLAUDE.md` の「5.2 README.md」に、README 正本ルール
+  （ルートが正本／サブディレクトリは固有の補足のみ／全文複製の並行維持を禁止）を追加した
+- 製品コードは変更していないため、製品バージョンは上げていない
+
+**旧 `CLAUDE.md` パス参照の完全解消（2026-08-24）**
+
+- 履歴・アーカイブ文書に残っていた旧パス（`biolog_streamlit/` 配下の `CLAUDE.md`）への参照を修正した
+  - `biolog_streamlit/Biolog_prompt.md`（3 箇所、C のみ・非公開のため D / P へは同期しない）
+  - `biolog_streamlit/README.before-localhost-default-20260722.md`（2 箇所）
+  - いずれも本文の当時の仕様・日付・履歴内容は変更せず、**参照パスだけ**を
+    リポジトリ直下の `CLAUDE.md` へ直した。GitHub 非公開ファイルのため
+    リンク切れになる Markdown リンクは作らず、コード表記にしている
+- リポジトリ全体（`.git/` `__pycache__/` `.pytest_cache/` `data/` `data_backups/` を除く）を再検索し、
+  旧パスへの参照が **0 件**であることを確認した
+- `CLAUDE.md` に恒久ルールを追加：正本はリポジトリ直下のみで複製や参照を作らないこと、
+  履歴文書を含め存在しない内部文書パスへの参照を残さないこと
+- **追補**：C 側の解消後も開発（C）／実行（D）／公開（P）の 3 拠点を個別に再検索したところ、
+  D と P の過去コピーに残存があったため、一回限りの例外として D / P を直接修正し、
+  **3 拠点すべてで旧 `CLAUDE.md` パスへの参照を 0 件にした**
+  - D / P の `biolog_streamlit/Biolog_prompt.md`（各 3 箇所）— C と同じ参照修正のみを適用。
+    修正後は 3 拠点でハッシュが一致し、本文に差がないことを確認済み。
+    この清掃を理由に `*prompt.md` を通常の同期対象へ変更してはいけない
+  - P にのみ存在する `plans/git-publish-recovery-runbook.md`（1 箇所）—
+    `git check-ignore` の確認コマンド例の引数を、現在の配置であるリポジトリ直下の
+    `CLAUDE.md` へ修正。C / D との一致対象にはしない
+  - 検索は `.gitignore` 対象を含め、`.git/` `__pycache__/` `.pytest_cache/` `data/`
+    `data_backups/` のみ除外して実施
+- 製品コードは変更していない
+
+## [1.7.7] — 2026-08-24
+
+### Added
+- **`README.md` に「用語解説」セクションを追加**
+  - README 本文に登場する専門用語を、Web 開発やプログラミングを専門としない読者でも
+    README 単体で理解できるよう解説した
+  - 8 カテゴリー・101 見出し構成
+    （BioLog・アプリ構成 / Web・API・ネットワーク / Python・Streamlit /
+    データベース・SQLite / Docker・実行環境 / データ・日時・ファイル形式 /
+    セキュリティ / 開発・運用）
+  - 各項目に「一般的な意味」と「BioLog では何に使っているか」を併記し、
+    `Docker` と `Docker Compose`、`INSERT` / `UPDATE` / `UPSERT`、`UTC` と `JST`、
+    `frontend` と `backend` のように混同しやすい用語は対比して説明した
+  - `Queue` / `Worker` / 単一 Writer モデル / `UPSERT` / `request_id` と冪等性など、
+    BioLog 固有の設計については実コードで挙動を確認したうえで記述した
+  - 配置は `ドキュメント` 節と `License` 節の間
+
+### Note
+- ドキュメントのみの変更であり、製品コード・テスト・DB スキーマ・公開 API 形式は
+  一切変更していない
+- README 本文（機能説明・手順・仕様記述・Known Issues 等）も変更していない
+
 ## [1.7.6] — 2026-08-23
 
 ### Fixed
