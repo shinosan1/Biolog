@@ -7,6 +7,27 @@
 *.yaml text eol=lf
 *.md text eol=lf
 
+# Other GitHub-published text files use LF on every platform
+.env.sample text eol=lf
+.gitattributes text eol=lf
+.gitignore text eol=lf
+LICENSE text eol=lf
+biolog_api/.dockerignore text eol=lf
+biolog_api/.gitignore text eol=lf
+biolog_api/Dockerfile text eol=lf
+biolog_api/constraints.txt text eol=lf
+biolog_api/requirements.txt text eol=lf
+biolog_streamlit/.dockerignore text eol=lf
+biolog_streamlit/.gitignore text eol=lf
+biolog_streamlit/.streamlit/config.toml text eol=lf
+biolog_streamlit/Dockerfile text eol=lf
+biolog_streamlit/constraints.txt text eol=lf
+biolog_streamlit/requirements.txt text eol=lf
+docker-compose.override.yml.sample text eol=lf
+docs/slides.html text eol=lf
+requirements-test.txt text eol=lf
+SHA256SUMS.txt text eol=lf
+
 # Windows batch / PowerShell keep CRLF
 *.bat text eol=crlf
 *.ps1 text eol=crlf
