@@ -90,7 +90,7 @@ echo   準備ができました。
 echo.
 start "" "%UI_URL%"
 echo ブラウザで %UI_URL% を開きました。
-echo 停止するときは BioLog停止.bat を実行してください。
+echo 停止するときは stop_biolog.bat を実行してください。
 echo.
 "%SLEEP_EXE%" /t 5 /nobreak >nul
 endlocal

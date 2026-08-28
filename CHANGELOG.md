@@ -57,7 +57,7 @@ BioLog プロジェクトの全変更履歴です。
 
 **設計文書の追随（2026-08-24）**
 
-- `docs/コード解説.md` を現行の三層 Cache Invalidation へ更新。
+- `docs/CODE_REFERENCE.md` を現行の三層 Cache Invalidation へ更新。
   旧ルール「`session_state` にバージョン番号を持たせる方式は禁止」を削除し、
   「version 機構を単独で使わず、`.clear()` と `ttl=10` を含む三層構成を維持する」へ改めた
 - `biolog_streamlit/仕様書.md` は **v1.5.5 時点の履歴スナップショット**であるため本文は保存し、
@@ -74,7 +74,7 @@ BioLog プロジェクトの全変更履歴です。
   **Streamlit フロントエンド固有の補助 README（57 行）へ整理**した。
   セットアップ・Docker 構成・Known Issues・用語解説・License 等はルート README への参照に置き換え、
   このディレクトリの責務（各ファイルの担当、`BIOLOG_API_URL`、`.streamlit/config.toml`）だけを残した
-- `docs/コード解説.md` に残っていた旧パス（`biolog_streamlit/` 配下の `CLAUDE.md`）への参照 3 箇所を、
+- `docs/CODE_REFERENCE.md` に残っていた旧パス（`biolog_streamlit/` 配下の `CLAUDE.md`）への参照 3 箇所を、
   現在の配置であるリポジトリ直下の `CLAUDE.md` へ修正した
 - `CLAUDE.md` の「5.2 README.md」に、README 正本ルール
   （ルートが正本／サブディレクトリは固有の補足のみ／全文複製の並行維持を禁止）を追加した

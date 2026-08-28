@@ -49,7 +49,7 @@ BioLog の Streamlit フロントエンドを格納するディレクトリで�
 |---|---|
 | [../README.md](../README.md) | **プロジェクト全体の正本。** セットアップ / 構成 / Known Issues / 用語解説 |
 | [../CHANGELOG.md](../CHANGELOG.md) | 全変更履歴 |
-| [../docs/コード解説.md](../docs/コード解説.md) | ファイル単位のコード解説（現行版） |
+| [../docs/CODE_REFERENCE.md](../docs/CODE_REFERENCE.md) | ファイル単位のコード解説（現行版） |
 | [../docs/spec.md](../docs/spec.md) | 利用者向けの機能仕様 |
 | [仕様書.md](仕様書.md) | 設計思想・データフロー（**v1.5.5 時点の履歴スナップショット**） |
 | [操作説明書.md](操作説明書.md) | 画面操作手順 |

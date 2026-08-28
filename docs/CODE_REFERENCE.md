@@ -1212,9 +1212,9 @@ docker compose up
 
 | ファイル | 内容 |
 |---|---|
-| `BioLog起動.bat` | `cd /d "%~dp0"` で自身の場所へ移動 → Docker 接続確認 → `docker compose up -d` → `/_stcore/health` を最大300秒ポーリング → ブラウザを開く |
-| `BioLog再ビルド起動.bat` | 上記に `--build` を付けて実行 |
-| `BioLog停止.bat` | `docker compose down` |
+| `start_biolog.bat` | `cd /d "%~dp0"` で自身の場所へ移動 → Docker 接続確認 → `docker compose up -d` → `/_stcore/health` を最大300秒ポーリング → ブラウザを開く |
+| `rebuild_and_start_biolog.bat` | 上記に `--build` を付けて実行 |
+| `stop_biolog.bat` | `docker compose down` |
 
 **パスをハードコードしていない**ため、開発用の C: ドライブでも運用用の D: ドライブでも、コピーするだけで動きます。
 

@@ -308,9 +308,9 @@ Windows 11 + Docker Desktopで動作確認されています。LinuxとmacOSは�
 
 リポジトリ直下に次のバッチファイルがあります。
 
-- `BioLog起動.bat` — 通常起動し、準備後にブラウザを開く
-- `BioLog再ビルド起動.bat` — コード変更後などに再ビルドして起動する
-- `BioLog停止.bat` — Docker Composeを停止する
+- `start_biolog.bat` — 通常起動し、準備後にブラウザを開く
+- `rebuild_and_start_biolog.bat` — コード変更後などに再ビルドして起動する
+- `stop_biolog.bat` — Docker Composeを停止する
 
 Docker Desktopを先に起動してから使用します。
 
@@ -404,5 +404,5 @@ BioLogの基本機能が正常に使える状態とは、次を満たす状態�
 - `biolog_streamlit/仕様書.md` — 内部設計の詳細
 - `biolog_api/skills.md` — APIの利用例
 - `PRIVACY_POLICY.md` — データの扱い
-- `TERMS_OF_SERVICE.md` — 利用条件と医療上の注意
+- `TERMS_OF_USE.md` — 利用条件と医療上の注意
 - `CHANGELOG.md` — バージョンごとの変更履歴

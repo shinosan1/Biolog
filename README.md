@@ -9,7 +9,7 @@
 日次で記録・可視化するための個人向けセルフホストアプリです。
 SQLite ファイル 1 つで完結し、標準構成では外部サービスへ健康記録を送信しません。
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.md)
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org)
 [![Docker](https://img.shields.io/badge/docker-required-blue.svg)](https://www.docker.com)
 
@@ -374,8 +374,14 @@ docker compose restart biolog-api
 | [biolog_streamlit/仕様書.md](biolog_streamlit/仕様書.md) | アーキテクチャ・データフロー・整合性モデル |
 | [biolog_streamlit/操作説明書.md](biolog_streamlit/操作説明書.md) | 画面操作手順 |
 | [biolog_api/skills.md](biolog_api/skills.md) | API リファレンス（curl 集） |
+| [docs/CODE_REFERENCE.md](docs/CODE_REFERENCE.md) | コード解説（現行版） |
+| [LICENSE.md](LICENSE.md) | ライセンス（MIT License） |
 | [PRIVACY_POLICY.md](PRIVACY_POLICY.md) | プライバシーポリシー |
-| [TERMS_OF_SERVICE.md](TERMS_OF_SERVICE.md) | 利用規約 |
+| [TERMS_OF_USE.md](TERMS_OF_USE.md) | 利用規約 |
+| [DISCLAIMER.md](DISCLAIMER.md) | 免責事項 |
+| [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) | サードパーティライセンス |
+| [SHA256SUMS.txt](SHA256SUMS.txt) | 公開ファイルのSHA-256一覧（機械検証用） |
+| [SHA256.md](SHA256.md) | SHA-256一覧（3拠点比較レポート） |
 
 ---
 
@@ -1269,7 +1275,7 @@ BioLog では設計の議論や実装の一部に併用したことが Acknowled
 
 ## License
 
-[MIT License](LICENSE) © 2026 [shinosan1]
+[MIT License](LICENSE.md) © 2026 [shinosan1]
 
 ---
 
