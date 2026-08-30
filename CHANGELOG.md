@@ -4,6 +4,22 @@ BioLog プロジェクトの全変更履歴です。
 形式は [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/) に従います。
 
 ---
+## [1.7.9] — 2026-08-29
+
+### Changed
+- `docs/CODE_REFERENCE.md` / `docs/CODE_REFERENCE.html` の構成図を、日本語文字幅で
+  崩れていたASCIIアートから、レスポンシブなCSS表示に置き換え
+
+### Fixed
+- `SHA256.md` / `SHA256.html` / `SHA256SUMS.txt` を現在のファイル構成を基準に全面再生成
+  - 旧ファイル名（`docs/コード解説.md`、`TERMS_OF_SERVICE.md`、`LICENSE`、
+    `BioLog起動.bat` 等の日本語 `.bat`）への参照が残っていたのを解消し、現行の正式名
+    （`docs/CODE_REFERENCE.md` / `.html`、`TERMS_OF_USE.md`、`LICENSE.md`、
+    `DISCLAIMER.md`、`THIRD_PARTY_LICENSES.md`、`start_biolog.bat` 等）に基づく一覧へ更新
+  - 開発（C）/実行（D）/公開（P）の3拠点・対象92ファイルでハッシュを再計算し、
+    3拠点へ反映（`.gitignore` の既存の相違はそのまま継続記載）
+
+---
 ## [1.7.8] — 2026-08-24
 
 ### Fixed

@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark"><title>BioLog コード解説 | BioLog</title><style>
+:root{color-scheme:light dark;--bg:#f5f8fb;--surface:#fff;--text:#1b2734;--muted:#5b6978;--line:#d6e0e8;--accent:#087990;--code:#edf3f6}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.75}a{color:var(--accent);text-underline-offset:.16em}a:focus-visible{outline:3px solid #f3b622;outline-offset:3px}.site-header{background:#12465a;color:#fff;padding:1.2rem max(1.2rem,calc((100% - 1160px)/2))}.site-header a{color:#fff;text-decoration:none}.site-header strong{font-size:1.1rem}nav{display:flex;flex-wrap:wrap;gap:.35rem .85rem;margin-top:.75rem}nav a{font-size:.9rem;opacity:.95}nav a[aria-current="page"]{font-weight:700;text-decoration:underline}main{max-width:1160px;margin:2rem auto;padding:clamp(1.2rem,3vw,3rem);background:var(--surface);box-shadow:0 2px 14px #14213d14}h1,h2,h3,h4,h5,h6{line-height:1.32;scroll-margin-top:1rem;color:var(--text)}h1{font-size:clamp(1.8rem,4vw,2.65rem);margin-top:0;border-bottom:3px solid var(--accent);padding-bottom:.35rem}h2{margin-top:2.5rem;border-bottom:1px solid var(--line);padding-bottom:.25rem}h3{margin-top:2rem}p,li{overflow-wrap:anywhere}ul,ol{padding-left:1.55rem}li+li{margin-top:.3rem}blockquote{margin:1.25rem 0;padding:.7rem 1rem;border-left:4px solid var(--accent);background:#eaf7f8}pre{overflow:auto;padding:1rem;background:var(--code);border:1px solid var(--line);border-radius:.35rem}code{font-family:ui-monospace,"Cascadia Code",Consolas,monospace;font-size:.92em;background:var(--code);padding:.08em .25em;border-radius:.2rem}pre code{padding:0;background:transparent}table{width:100%;border-collapse:collapse;margin:1.2rem 0;display:block;overflow-x:auto}th,td{border:1px solid var(--line);padding:.55rem .7rem;text-align:left;vertical-align:top}th{background:var(--code)}figure{margin:1.4rem auto;max-width:100%}figure img{display:block;max-width:100%;height:auto;margin:auto;border:1px solid var(--line);border-radius:.35rem}figcaption{text-align:center;color:var(--muted);font-size:.9rem;margin-top:.4rem}hr{border:0;border-top:1px solid var(--line);margin:2rem 0}.architecture-diagram{margin:1.4rem 0;padding:clamp(1rem,3vw,1.8rem);border:1px solid var(--line);border-radius:.8rem;background:linear-gradient(145deg,var(--code),var(--surface));box-shadow:inset 0 1px 0 #ffffff80}.architecture-top{display:grid;grid-template-columns:minmax(13rem,1fr) minmax(5rem,.34fr) minmax(13rem,1fr);gap:1rem;align-items:center}.architecture-node{min-width:0;padding:1rem 1.1rem;border:1px solid var(--line);border-top:4px solid var(--accent);border-radius:.65rem;background:var(--surface);box-shadow:0 4px 14px #14213d12}.architecture-node--worker,.architecture-node--storage{width:min(100%,28rem);margin-inline:auto}.architecture-node--worker{border-top-color:#7b61a8}.architecture-node--storage{border-top-color:#b56b1e}.architecture-kicker{display:block;margin-bottom:.25rem;color:var(--muted);font-size:.73rem;font-weight:750;letter-spacing:.08em;text-transform:uppercase}.architecture-title{display:flex;flex-wrap:wrap;gap:.35rem .55rem;align-items:baseline;margin:0;font-size:1.08rem;line-height:1.4}.architecture-title code{font-size:.78rem;font-weight:500}.architecture-node p{margin:.35rem 0 0;color:var(--muted);font-size:.9rem}.architecture-link,.architecture-vertical{text-align:center;color:var(--accent);font-weight:750}.architecture-link span,.architecture-vertical span{display:block;color:var(--muted);font-size:.75rem;font-weight:650}.architecture-arrow{display:block;font-size:1.8rem;line-height:1.1}.architecture-stack{display:grid;gap:.35rem;margin-top:.45rem}.architecture-vertical{line-height:1.25}.architecture-diagram code{white-space:nowrap}.doc-footer{max-width:1160px;margin:0 auto 2rem;padding:0 1.2rem;color:var(--muted);font-size:.9rem}@media(max-width:720px){.architecture-top{grid-template-columns:1fr}.architecture-link .architecture-arrow{transform:rotate(90deg)}.architecture-node--worker,.architecture-node--storage{width:100%}}@media print{body{background:#fff}.site-header{background:#fff;color:#000;padding:0}.site-header a{color:#000}nav{display:none}main{box-shadow:none;margin:0;max-width:none;padding:0}.architecture-diagram{box-shadow:none;background:#fff}.architecture-node{box-shadow:none}.doc-footer{display:none}a{color:#000;text-decoration:none}}
+</style></head>
+<body><header class="site-header"><strong><a href="../README.html">BioLog Documentation</a></strong><nav aria-label="Documentation navigation"><a href="../README.html">README</a><a href="slides.html">Slides</a><a href="../biolog_streamlit/操作説明書.html">操作説明書</a><a href="CODE_REFERENCE.html" aria-current="page">コード解説</a><a href="../TERMS_OF_USE.html">利用規約</a><a href="../PRIVACY_POLICY.html">プライバシー</a><a href="../DISCLAIMER.html">免責事項</a><a href="../LICENSE.html">ライセンス</a><a href="../THIRD_PARTY_LICENSES.html">第三者ライセンス</a><a href="../SHA256.html">SHA-256</a></nav></header><main>
+<h1 id="biolog-コード解説">BioLog コード解説</h1>
+<p>ファイルごとに「何を担当し、どう動くか」をまとめた開発者向けの注釈書です。</p>
+<ul><li>対象: BioLog v1.7.5 相当（リポジトリ確認日 2026-08-15）</li><li>ただし「4.4 cache.py」と「2. 設計上の絶対ルール」のルール 9 は、</li></ul>
+<p>v1.7.8 の三層 Cache Invalidation へ追随更新済み（2026-08-24）</p>
+<ul><li>「何ができるか」は <a href="spec.md">spec.md</a>、「守るべき制約」はリポジトリ直下の <code>CLAUDE.md</code>（開発リポジトリのみ・非公開）を参照してください。本書はその2つの<strong>間を埋める、コードの動作説明</strong>です。</li></ul>
+<hr>
+<h2 id="目次">目次</h2>
+<ol><li><a href="#1-全体構成">全体構成</a></li><li><a href="#2-設計上の絶対ルールとそれを守っているコード">設計上の絶対ルールと、それを守っているコード</a></li><li><a href="#3-biolog_api--書き込みと読み取りのapi">biolog_api — 書き込みと読み取りのAPI</a></li><li><a href="#4-biolog_streamlit--画面">biolog_streamlit — 画面</a></li><li><a href="#5-データモデル">データモデル</a></li><li><a href="#6-1件の登録を最初から最後まで追う">1件の登録を最初から最後まで追う</a></li><li><a href="#7-tests--何を守っているテストか">tests — 何を守っているテストか</a></li><li><a href="#8-起動と運用">起動と運用</a></li><li><a href="#9-コードを読むときの注意点">コードを読むときの注意点</a></li></ol>
+<hr>
+<h2 id="1-全体構成">1. 全体構成</h2>
+<h3 id="コンテナは2つdbはファイル1つ">コンテナは2つ、DBはファイル1つ</h3>
+<section class="architecture-diagram" aria-label="BioLogのコンテナとデータ保存構成">
+  <div class="architecture-top">
+    <article class="architecture-node">
+      <span class="architecture-kicker">UI container</span>
+      <h4 class="architecture-title"><span>biolog-streamlit</span><code>:8501</code></h4>
+      <p>閲覧・登録・修正を行う画面</p>
+    </article>
+    <div class="architecture-link" aria-label="HTTPで接続">
+      <span>HTTP</span><b class="architecture-arrow" aria-hidden="true">→</b>
+    </div>
+    <article class="architecture-node">
+      <span class="architecture-kicker">API container</span>
+      <h4 class="architecture-title"><span>biolog-api</span><code>:8766</code></h4>
+      <p>FastAPIによる読み取り・書き込みAPI</p>
+    </article>
+  </div>
+  <div class="architecture-stack">
+    <div class="architecture-vertical"><span>Queue(maxsize=100)</span><b class="architecture-arrow" aria-hidden="true">↓</b></div>
+    <article class="architecture-node architecture-node--worker">
+      <span class="architecture-kicker">Serialized writes</span>
+      <h4 class="architecture-title"><span>worker スレッド</span><code>× 1</code></h4>
+      <p>書き込み処理を1本に直列化</p>
+    </article>
+    <div class="architecture-vertical"><span>db_manager</span><b class="architecture-arrow" aria-hidden="true">↓</b></div>
+    <article class="architecture-node architecture-node--storage">
+      <span class="architecture-kicker">Shared data</span>
+      <h4 class="architecture-title"><span>SQLite</span></h4>
+      <p><code>/data/biolog.db</code></p>
+    </article>
+  </div>
+</section>
+<p>どちらのポートも <code>127.0.0.1</code> にバインドされており、同じ PC からのみ接続できます。</p>
+<h3 id="書き込みと読み取りで経路が違う">書き込みと読み取りで経路が違う</h3>
+<p>これが BioLog の設計の中心です。</p>
+<div class="table-wrap"><table><thead><tr><th scope="col">種別</th><th scope="col">経路</th><th scope="col">実行スレッド</th></tr></thead><tbody><tr><td><strong>書き込み</strong>（登録・更新・削除）</td><td>API → Queue → <strong>worker 1本</strong> → <code>db_manager</code> → SQLite</td><td>worker スレッド</td></tr><tr><td><strong>読み取り</strong>（一覧・グラフ・最新値）</td><td>API → <code>biocore</code> → <code>db_manager</code> → SQLite</td><td>リクエストのスレッド</td></tr></tbody></table></div>
+<p>SQLite は同時書き込みに弱いため、<strong>書き込みを1本のスレッドに直列化</strong>しています。読み取りは並行して構いません。</p>
+<h3 id="依存関係">依存関係</h3>
+<pre><code>biolog_api/
+  api.py ──┬─ preprocess.py ─ time_utils.py
+           ├─ schemas.py
+           ├─ queue_manager.py
+           ├─ worker.py ─ write_repository.py ─┐
+           ├─ biocore.py ───────────────────────┼─ db_manager.py ─ SQLite
+           └─ log_utils.py                      ┘
+  migrations/runner.py ─ versions/migrate_001_init.py（隔離接続。db_manager を使わない唯一の例外）
+
+biolog_streamlit/
+  streamlit_app.py ─┬─ views/summary.py ──── cache.py ──┐
+                    ├─ views/graph.py ────── charts.py  ├─ api_client.py ─ HTTP
+                    ├─ views/list_view.py ─┬ safe_table.py
+                    │                      └ formatters.py, time_utils.py
+                    ├─ views/create.py ────┬ form_components.py ─ form_state.py
+                    └─ views/edit.py ──────┴ payloads.py ─ form_fields.py
+                    └─ ui_style.py</code></pre>
+<hr>
+<h2 id="2-設計上の絶対ルールとそれを守っているコード">2. 設計上の絶対ルールと、それを守っているコード</h2>
+<p>設計上の絶対ルールは10個あります（開発ルールの正本はリポジトリ直下の <code>CLAUDE.md</code>。開発リポジトリのみ・非公開）。<strong>どのコードがそれを担保しているか</strong>を対応させます。</p>
+<div class="table-wrap"><table><thead><tr><th scope="col">#</th><th scope="col">ルール</th><th scope="col">実装上の担保</th></tr></thead><tbody><tr><td>1</td><td>書き込み経路は1本</td><td><code>api.py:_enqueue_and_wait()</code> 以外に書き込み入口が無い</td></tr><tr><td>2</td><td><code>sqlite3.connect()</code> は <code>db_manager.py</code> 以外で呼ばない</td><td>例外は <code>migrations/runner.py</code> のみ（起動時に直列実行されるため競合しない）</td></tr><tr><td>3</td><td><code>journal_mode=WAL</code> 禁止</td><td><code>db_manager.py</code> で <code>PRAGMA journal_mode=DELETE</code> を毎回設定</td></tr><tr><td>4</td><td>worker は daemon 1本</td><td><code>api.py:_start_worker()</code> が <code>daemon=True</code> で1本だけ生成</td></tr><tr><td>5</td><td>Queue は singleton 1個</td><td><code>queue_manager.py</code> にモジュールレベルの <code>_write_queue</code> 1個</td></tr><tr><td>6</td><td>エンドポイント内でDB直接操作をしない</td><td>GET は全て <code>biocore</code> 経由。<code>api.py</code> に SQL は1行も無い</td></tr><tr><td>7</td><td>Streamlit から DB へ直接アクセスしない</td><td><code>api_client.py</code> の HTTP のみ。<code>sqlite3</code> を import していない</td></tr><tr><td>8</td><td><code>lifespan</code> に migration を書かない</td><td><code>entrypoint.sh</code> が <code>runner.py</code> → <code>uvicorn</code> の順に直列実行</td></tr><tr><td>9</td><td>キャッシュ無効化は <code>.clear()</code> + <code>data_version</code> + TTL の三層</td><td><code>cache.py:clear_health_caches()</code> が <code>.clear()</code> と <code>bump_data_version()</code> を両方呼ぶ</td></tr><tr><td>10</td><td>ログに PII を生で出さない</td><td><code>log_utils.mask_pii()</code> を <code>api.py</code> と <code>worker.py</code> の全ログが通る</td></tr></tbody></table></div>
+<p><strong>WAL 禁止の理由</strong>は Windows の NTFS バインドマウントで I/O エラーになるためです。トラブル時に <code>.db-wal</code> / <code>.db-shm</code> が残っていないか確認する運用は、この制約から来ています。</p>
+<hr>
+<h2 id="3-biolog_api--書き込みと読み取りのapi">3. biolog_api — 書き込みと読み取りのAPI</h2>
+<h3 id="31-apipy--エンドポイントの定義263行">3.1 api.py — エンドポイントの定義（263行）</h3>
+<h4 id="lifespanworker-の起動と停止">lifespan：worker の起動と停止</h4>
+<pre><code class="language-python">@asynccontextmanager
+async def lifespan(app: FastAPI):
+    _worker_thread = _start_worker()          # daemon スレッド1本
+    signal.signal(signal.SIGTERM, _handle_sigterm)
+    yield
+    _stop_worker(_worker_thread)              # None を積んで join(timeout=10)</code></pre>
+<p>停止は <strong><code>None</code> を Queue に積む</strong>ことで通知します（sentinel 方式）。<code>worker_loop</code> は <code>None</code> を受け取るとループを抜けます。<code>SIGTERM</code> ハンドラも同じ処理を呼ぶので、<code>docker stop</code> でも安全に止まります。</p>
+<h4 id="_enqueue_and_waitoperation-payload--書き込みの唯一の入口"><code>_enqueue_and_wait(operation, payload)</code> — 書き込みの唯一の入口</h4>
+<pre><code class="language-python">result_q = SyncQueue()                        # このリクエスト専用の返信箱
+task = {&quot;operation&quot;:…, &quot;request_id&quot;:…, &quot;payload&quot;:…, &quot;result_queue&quot;: result_q}
+if q.full(): → 503 &quot;Write queue is full&quot;
+q.put(task)
+result = result_q.get(timeout=30)             # ← ここで待つ</code></pre>
+<p>リクエストごとに<strong>返信用の Queue を作って task に同梱</strong>し、worker がそこへ結果を投げ返します。これで「どのリクエストの結果か」を取り違えません。</p>
+<p>worker から返る <code>error_kind</code> を HTTP ステータスへ変換します。</p>
+<div class="table-wrap"><table><thead><tr><th scope="col"><code>error_kind</code></th><th scope="col">HTTP</th></tr></thead><tbody><tr><td><code>not_found</code></td><td>404</td></tr><tr><td><code>validation</code></td><td>422</td></tr><tr><td>その他（<code>database</code> / <code>internal</code>）</td><td>500</td></tr><tr><td>Queue 満杯 / 30秒応答なし</td><td>503</td></tr></tbody></table></div>
+<h4 id="post-apihealthrecord--登録"><code>POST /api/health/record</code> — 登録</h4>
+<p>このエンドポイントだけ<strong>リクエストボディを Pydantic で直接受け取らず、生の JSON を読みます</strong>。</p>
+<pre><code class="language-python">raw = await request.json()          # 生のまま受ける
+preprocessed = pp.preprocess_record(raw)   # ← 先に正規化する必要がある
+record = HealthRecordCreate(**preprocessed)  # その後で検証</code></pre>
+<p>理由は、<code>request_id</code> や <code>date</code> の欠損補完、<code>blood_pressure</code> 文字列の分解を<strong>検証より前</strong>に行う必要があるためです。Pydantic を先に通すと <code>extra=&quot;forbid&quot;</code> で <code>blood_pressure</code> が弾かれてしまいます。</p>
+<p>処理の各段階で構造化ログを出します（すべて <code>mask_pii</code> を通過）。</p>
+<pre><code>REQ_START → API_IN → API_ENRICH → PREPROCESS → UNKNOWN_KEYS
+→ VALIDATION → API_PAYLOAD_KEYS → API_PAYLOAD_BEFORE_QUEUE → DB_WRITE → REQ_END</code></pre>
+<p>出力するのは<strong>キー名だけで、値は出しません</strong>。健康値がログに残らないようにするためです。</p>
+<h4 id="その他のエンドポイント">その他のエンドポイント</h4>
+<div class="table-wrap"><table><thead><tr><th scope="col">メソッド</th><th scope="col">パス</th><th scope="col">実装</th></tr></thead><tbody><tr><td>GET</td><td><code>/api/health/health</code></td><td>worker 生存 + DB 疎通 + Queue 空き状況</td></tr><tr><td>POST</td><td><code>/api/health/record</code></td><td>Queue 経由で insert</td></tr><tr><td>PUT</td><td><code>/api/health/record/{id}</code></td><td>Queue 経由で update</td></tr><tr><td>DELETE</td><td><code>/api/health/record/{id}</code></td><td>Queue 経由で delete</td></tr><tr><td>GET</td><td><code>/api/health/record/day</code></td><td><code>biocore.get_record_by_user_date</code></td></tr><tr><td>GET</td><td><code>/api/health/record/{id}</code></td><td><code>biocore.get_record_by_id</code></td></tr><tr><td>GET</td><td><code>/api/health/records</code></td><td>一覧（limit 1〜500, offset 0〜10000）</td></tr><tr><td>GET</td><td><code>/api/health/records/range</code></td><td>期間指定</td></tr><tr><td>GET</td><td><code>/api/health/records/latest/{user_id}</code></td><td>最新1件</td></tr></tbody></table></div>
+<blockquote><p><strong>ルート定義順が意味を持ちます。</strong> <code>/api/health/record/day</code> は <code>/api/health/record/{record_id}</code> より<strong>前</strong>に定義されています。逆にすると <code>&quot;day&quot;</code> が <code>record_id</code> として解釈され、常に 422 になります。並び替えないでください。</p></blockquote>
+<p><code>/records/range</code> の日付検証は厳密です。</p>
+<pre><code class="language-python">start_date = date.fromisoformat(start)
+if start_date.isoformat() != start:   # &quot;2026-8-1&quot; のようなゼロ埋め無しを弾く
+    → 422
+if start_date &gt; end_date:             # 逆転を弾く
+    → 422</code></pre>
+<h4 id="ヘルスチェックの判定">ヘルスチェックの判定</h4>
+<pre><code class="language-python">worker_alive and database_ok  → queue.full() なら &quot;degraded&quot;、そうでなければ &quot;ok&quot;
+どちらか欠ける                → &quot;unhealthy&quot;</code></pre>
+<p><code>docker-compose.yml</code> のヘルスチェックは <code>status == &quot;ok&quot;</code> のみを成功とみなします。<code>degraded</code> はコンテナ的には異常扱いです。</p>
+<hr>
+<h3 id="32-queue_managerpy--たった7行の要7行">3.2 queue_manager.py — たった7行の要（7行）</h3>
+<pre><code class="language-python">_write_queue: Queue = Queue(maxsize=100)
+def get_queue() -&gt; Queue: return _write_queue</code></pre>
+<p>モジュールレベルの変数なので、同一プロセス内では<strong>必ず同じ1個</strong>が返ります。<code>maxsize=100</code> に達すると API が 503 を返し、worker が止まっていることを検知できます。</p>
+<hr>
+<h3 id="33-workerpy--書き込みを直列化するスレッド139行">3.3 worker.py — 書き込みを直列化するスレッド（139行）</h3>
+<h4 id="メインループ">メインループ</h4>
+<pre><code class="language-python">while True:
+    task = q.get()
+    if task is None: break            # 停止指示
+    try:
+        result = _execute_with_retry(task, q)
+        result_queue.put({&quot;status&quot;: &quot;success&quot;, **result})
+    except sqlite3.OperationalError as e: → &quot;database&quot;
+    except ValueError as e:               → &quot;not found&quot; を含むなら &quot;not_found&quot;、他は &quot;validation&quot;
+    except Exception as e:                → &quot;internal&quot;
+    finally:
+        q.task_done()</code></pre>
+<p><strong>重要な性質: 1件の失敗で worker は死にません。</strong> すべての例外を捕まえて結果 Queue にエラーを返し、次のタスクへ進みます。<code>tests/test_worker_resilience.py</code> がこれを検証しています（存在しないIDの更新・削除の後に、次の insert が通ること）。</p>
+<h4 id="エラーメッセージを外に出さない">エラーメッセージを外に出さない</h4>
+<pre><code class="language-python">public_messages = {
+    &quot;not_found&quot;:  &quot;Record not found&quot;,
+    &quot;validation&quot;: &quot;Invalid write request&quot;,
+    &quot;database&quot;:   &quot;Database operation failed&quot;,
+    &quot;internal&quot;:   &quot;Worker operation failed&quot;,
+}</code></pre>
+<p>クライアントには<strong>この4種類の固定文言しか返しません</strong>。例外の実メッセージ（テーブル名・パス・SQL断片を含みうる）はログにのみ残り、例外の型名だけが記録されます。</p>
+<h4 id="ロック時の再試行">ロック時の再試行</h4>
+<pre><code class="language-python">max_retry = 5, delay = 0.1 → 0.2 → 0.4 → 0.8（指数バックオフ）
+if &quot;database is locked&quot; not in str(e): raise    # ロック以外は即座に投げ直す</code></pre>
+<p>再試行するのは<strong>ロック競合だけ</strong>です。型エラーや制約違反を5回繰り返しても無駄なので、即座に失敗させます。</p>
+<hr>
+<h3 id="34-write_repositorypy--sql-を書く唯一の場所書き込み側・152行">3.4 write_repository.py — SQL を書く唯一の場所（書き込み側・152行）</h3>
+<h4 id="insert_record-は-insert-ではなく-upsert"><code>insert_record()</code> は insert ではなく <strong>upsert</strong></h4>
+<pre><code class="language-sql">INSERT INTO health_records (…) VALUES (…)
+ON CONFLICT(user_id, date) DO UPDATE SET
+    request_id   = excluded.request_id,
+    temperature  = COALESCE(excluded.temperature, health_records.temperature),
+    …
+    meal_detail  = COALESCE(NULLIF(excluded.meal_detail, &#x27;&#x27;), health_records.meal_detail),
+    memo         = COALESCE(NULLIF(excluded.memo, &#x27;&#x27;), health_records.memo)</code></pre>
+<p>同じ「ユーザー×日付」が既にあれば <strong>UPDATE に化けます</strong>（<code>uidx_hr_user_date</code> の UNIQUE 制約が引き金）。</p>
+<p><strong>値の保護のしかたが数値とテキストで違います。</strong></p>
+<div class="table-wrap"><table><thead><tr><th scope="col">種別</th><th scope="col">SQL</th><th scope="col">意味</th></tr></thead><tbody><tr><td>数値8項目</td><td><code>COALESCE(excluded.X, 既存.X)</code></td><td><strong>NULL なら既存値を残す</strong></td></tr><tr><td>テキスト3項目</td><td><code>COALESCE(NULLIF(excluded.X, &#x27;&#x27;), 既存.X)</code></td><td><strong>NULL または空文字なら既存値を残す</strong></td></tr></tbody></table></div>
+<p>つまり、体重だけ送信すれば他の項目は消えません。空文字を送っても既存のメモは消えません。<strong>API 経由で値を消す手段は無い</strong>、というのが現在の仕様です。</p>
+<h4 id="_merge_log_entries--ログは上書きではなく追記"><code>_merge_log_entries()</code> — ログは上書きではなく追記</h4>
+<p>登録前に既存の <code>meal_detail</code> / <code>activity_log</code> を SELECT し、<strong>行単位で重複を除いて追記</strong>します。</p>
+<pre><code class="language-python">既存 = {&quot;朝食: パン&quot;, &quot;昼食: そば&quot;}
+新規 = &quot;昼食: そば\n夕食: カレー&quot;
+結果 = &quot;朝食: パン\n昼食: そば\n夕食: カレー&quot;    # 「昼食: そば」は重複なので足さない</code></pre>
+<ul><li>改行コードは <code>\r\n</code> <code>\r</code> を <code>\n</code> に正規化してから比較</li><li>比較は <code>strip()</code> 済みの文字列で行うが、<strong>追記される行は元の形のまま</strong></li><li>部分一致は別行として扱う（「そば」と「昼食: そば」は別物）</li></ul>
+<p><strong>同じ日に何度も登録すると、食事ログと行動ログは積み上がっていきます。</strong> 数値は上書き、ログは追記、という非対称な設計です。</p>
+<h4 id="冪等性request_id-衝突">冪等性（request_id 衝突）</h4>
+<pre><code class="language-python">except sqlite3.IntegrityError as e:
+    if &quot;request_id&quot; in str(e).lower():
+        row = SELECT id FROM health_records WHERE request_id = ?
+        return {&quot;idempotent&quot;: True, &quot;id&quot;: row[0]}
+    raise</code></pre>
+<p><code>request_id</code> は UNIQUE です。ネットワーク再送などで同じ <code>request_id</code> が二度届いても、<strong>新しい行を作らず既存の id を返します</strong>。それ以外の <code>IntegrityError</code> はそのまま投げ直します。</p>
+<h4 id="update_record--ホワイトリスト方式"><code>update_record()</code> — ホワイトリスト方式</h4>
+<pre><code class="language-python">_ALLOWED = {&quot;temperature&quot;: float, &quot;pulse&quot;: int, …, &quot;meal_detail&quot;: str}
+for k, v in payload.items():
+    if k in _ALLOWED and v is not None:
+        fields[k] = _ALLOWED[k](v)     # 型変換。失敗は ValueError
+if not fields: raise ValueError(&quot;No fields to update&quot;)</code></pre>
+<ul><li><code>_ALLOWED</code> に無いキーは<strong>黙って無視</strong>されます。<code>date</code> や <code>user_id</code> は含まれないので、<strong>更新で日付や人を変えることはできません</strong></li><li><code>None</code> は「更新しない」の意味なのでスキップ</li><li>更新対象が0件なら <code>ValueError</code> → 422</li><li><code>rowcount == 0</code>（ID が存在しない）なら <code>ValueError(&quot;… not found&quot;)</code> → 404</li><li>SET 句は <code>_ALLOWED</code> のキーからのみ組み立てるため、キー名が SQL に混入する経路はありません（値は必ずプレースホルダ）</li></ul>
+<h4 id="delete_record"><code>delete_record()</code></h4>
+<p>ID 指定で1行削除。<code>rowcount == 0</code> なら <code>ValueError(&quot;Record N not found&quot;)</code> → 404。</p>
+<hr>
+<h3 id="35-biocorepy--sql-を書く唯一の場所読み取り側・128行">3.5 biocore.py — SQL を書く唯一の場所（読み取り側・128行）</h3>
+<h4 id="読み取り専用の再試行">読み取り専用の再試行</h4>
+<pre><code class="language-python">def _execute_read(query, params=(), *, one=False):
+    delays = (0.1, 0.2)
+    for attempt in range(3):
+        try:
+            with get_connection(read=True) as conn: …
+        except sqlite3.OperationalError as exc:
+            if &quot;locked&quot; not in str(exc).lower() or attempt == 2: raise
+            time.sleep(delays[attempt])</code></pre>
+<p><strong>最大3回</strong>（初回＋2回の再試行）。合計待ち時間は 0.3 秒以内です。worker 側（最大5回・指数バックオフ）より軽く設定されており、読み取りが画面を長く待たせないようになっています。ロック以外のエラーは即座に投げます。</p>
+<h4 id="クエリ一覧">クエリ一覧</h4>
+<div class="table-wrap"><table><thead><tr><th scope="col">関数</th><th scope="col">並び順</th><th scope="col">備考</th></tr></thead><tbody><tr><td><code>check_database()</code></td><td>—</td><td><code>SELECT 1</code> の疎通確認のみ</td></tr><tr><td><code>get_health_records()</code></td><td><code>date DESC, id DESC</code></td><td>limit/offset を<strong>関数内でも再検証</strong></td></tr><tr><td><code>get_health_records_by_date_range()</code></td><td><code>date ASC, id ASC</code></td><td>グラフ用に古い順</td></tr><tr><td><code>get_record_by_id()</code></td><td>—</td><td>1件</td></tr><tr><td><code>get_record_by_user_date()</code></td><td>—</td><td>1件</td></tr><tr><td><code>get_latest_record()</code></td><td><code>date DESC, id DESC LIMIT 1</code></td><td>サマリーカード用</td></tr></tbody></table></div>
+<p><code>limit</code> / <code>offset</code> の範囲チェックは FastAPI の <code>Query(ge=…, le=…)</code> と <code>biocore</code> の両方にあります。<strong>API を経由しない呼び出しでも守られる</strong>ようにするための二重化です。</p>
+<blockquote><p><code>get_record_by_user_date()</code> だけ <code>SELECT *</code> を使っています（他は <code>HEALTH_RECORD_COLUMNS</code> を明示）。列を追加したとき、この関数だけ返却内容が自動的に増えます。</p></blockquote>
+<hr>
+<h3 id="36-db_managerpy--db接続の唯一の入口43行">3.6 db_manager.py — DB接続の唯一の入口（43行）</h3>
+<pre><code class="language-python">DATABASE_PATH = os.getenv(&quot;DATABASE_PATH&quot;)
+if not DATABASE_PATH: raise RuntimeError(&quot;DATABASE_PATH is not set&quot;)</code></pre>
+<p><strong>import された時点で環境変数が無ければ即座に落ちます。</strong> 設定漏れのまま中途半端に動くことを防ぎます。</p>
+<pre><code class="language-python">@contextmanager
+def get_connection(*, read=False, write=False):
+    if read == write: raise ValueError(&quot;Specify exactly one of read=True or write=True&quot;)</code></pre>
+<p><code>read</code> と <code>write</code> を<strong>必ずどちらか一方</strong>指定させます。両方 True も両方 False もエラーです。呼び出し側が意図を明示せざるを得ない設計です。</p>
+<div class="table-wrap"><table><thead><tr><th scope="col">設定</th><th scope="col">値</th><th scope="col">理由</th></tr></thead><tbody><tr><td><code>timeout</code></td><td>1.0 秒</td><td>接続時のロック待ち</td></tr><tr><td><code>isolation_level</code></td><td><code>None</code></td><td>自動コミット。トランザクションは明示的に張る</td></tr><tr><td><code>text_factory</code></td><td><code>str</code></td><td>日本語の文字化け防止</td></tr><tr><td><code>row_factory</code></td><td><code>sqlite3.Row</code></td><td>列名でアクセス可能に</td></tr><tr><td><code>PRAGMA journal_mode</code></td><td><strong>DELETE</strong></td><td>WAL は Windows バインドマウントで壊れる</td></tr><tr><td><code>PRAGMA busy_timeout</code></td><td>1000 ms</td><td>ロック時の待機</td></tr><tr><td><code>PRAGMA foreign_keys</code></td><td>ON</td><td>—</td></tr></tbody></table></div>
+<p>書き込み時のみ <strong><code>BEGIN IMMEDIATE</code></strong> を発行します。読み取りロックから書き込みロックへの昇格時に起きるデッドロックを避けるため、<strong>最初から書き込みロックを取ります</strong>。成功で <code>commit()</code>、例外で <code>rollback()</code>、いずれにせよ <code>finally</code> で <code>close()</code>。</p>
+<hr>
+<h3 id="37-schemaspy--pydantic-による入力検証199行">3.7 schemas.py — Pydantic による入力検証（199行）</h3>
+<pre><code class="language-python">model_config = ConfigDict(extra=&quot;forbid&quot;)   # 未知のキーは 422</code></pre>
+<h4 id="検証範囲">検証範囲</h4>
+<div class="table-wrap"><table><thead><tr><th scope="col">項目</th><th scope="col">範囲</th></tr></thead><tbody><tr><td><code>temperature</code></td><td>34.0 〜 42.0</td></tr><tr><td><code>pulse</code></td><td>30 〜 200</td></tr><tr><td><code>systolic_bp</code></td><td>50 〜 250</td></tr><tr><td><code>diastolic_bp</code></td><td>30 〜 150</td></tr><tr><td><code>weight</code></td><td>0 &lt; v &lt; 300</td></tr><tr><td><code>body_fat</code></td><td>0.0 〜 100.0</td></tr><tr><td><code>muscle_mass</code></td><td>0 &lt; v &lt; 200</td></tr><tr><td><code>bmr</code></td><td>0 &lt; v &lt; 5000</td></tr><tr><td><code>user_id</code></td><td><code>self</code> / <code>father</code> / <code>mother</code> のみ</td></tr><tr><td><code>date</code></td><td>実在する <code>YYYY-MM-DD</code>（<code>isoformat()</code> との往復一致で検証）</td></tr></tbody></table></div>
+<p>テキスト長の上限は <code>meal_detail</code> 10000 / <code>activity_log</code> <strong>20000</strong> / <code>memo</code> 10000 文字。行動ログだけ倍あります。</p>
+<h4 id="at_least_one_health_value--空レコードの拒否"><code>at_least_one_health_value</code> — 空レコードの拒否</h4>
+<pre><code class="language-python">@model_validator(mode=&quot;after&quot;)
+def at_least_one_health_value(self):
+    has_measurement = 数値8項目のいずれかが not None
+    has_text_log = テキスト3項目のいずれかが strip() して非空
+    if not has_measurement and not has_text_log: raise ValueError(…)</code></pre>
+<p>数値が全部 None かつテキストが全部空なら登録できません。</p>
+<h4 id="healthrecordupdate-は-create-と別物"><code>HealthRecordUpdate</code> は Create と別物</h4>
+<ul><li><code>request_id</code> / <code>date</code> / <code>user_id</code> を<strong>持ちません</strong>。したがって PUT で日付や人を変更できません</li><li><code>exclude_unset=True</code> で <code>model_dump()</code> されるため、<strong>送信されなかった項目は payload に現れません</strong>（<code>write_repository</code> 側の「更新しない」判定と噛み合っています）</li></ul>
+<blockquote><p><strong>層の役割分担</strong>（ファイル冒頭のコメントより）: API 層のバリデーションは UX 目的で、422 を即座に返すためのもの。DB の CHECK 制約は最終防衛ラインで、絶対条件のみ。 なお現在の <code>migrate_001_init.py</code> に数値レンジの CHECK 制約はありません（NOT NULL と UNIQUE のみ）。数値範囲の担保は実質 API 層のみです。書き込み経路が worker 1本に限定されているため実用上は問題になりませんが、DB を直接操作する場合は範囲が守られない点に注意してください。</p></blockquote>
+<hr>
+<h3 id="38-preprocesspy--構文の正規化だけを行う層50行">3.8 preprocess.py — 構文の正規化だけを行う層（50行）</h3>
+<p>冒頭のコメントで<strong>許される変換が3種類に限定</strong>されています。</p>
+<pre><code>1. 型補正       float → int
+2. 構造補完     UUID / date の欠損補完
+3. 構文クリーンアップ  BP 文字列の分解
+これ以外（意味変換・カテゴリ化・単位変換・推論）は別層に追加すること</code></pre>
+<h4 id="1-欠損補完">1. 欠損補完</h4>
+<pre><code class="language-python">if not data.get(&quot;request_id&quot;): data[&quot;request_id&quot;] = str(uuid.uuid4())
+if not data.get(&quot;date&quot;):       data[&quot;date&quot;] = jst_date()     # JST の今日</code></pre>
+<p>日付は<strong>必ず JST 基準</strong>です。コンテナの TZ に関わらず <code>time_utils.JST</code>（UTC+9 固定）で計算します。</p>
+<h4 id="2-型補正">2. 型補正</h4>
+<pre><code class="language-python">invalid_fields = []
+for field in (&quot;pulse&quot;, &quot;bmr&quot;, &quot;systolic_bp&quot;, &quot;diastolic_bp&quot;):
+    v = data.get(field)
+    if v is not None:
+        try:
+            data[field] = int(float(v))
+        except (ValueError, TypeError, OverflowError):
+            invalid_fields.append(field)
+if invalid_fields:
+    raise ValueError(&quot;Invalid number format: &quot; + &quot;, &quot;.join(invalid_fields))</code></pre>
+<p>整数フィールドに <code>72.0</code> や <code>&quot;1400.0&quot;</code> のような float が来ても通します。</p>
+<p><strong>数値として解釈できない値は <code>ValueError</code> になり、<code>api.create_record</code> が 422 に変換します。</strong> 不正な項目名はすべて列挙されます（例: <code>Invalid number format: pulse, bmr</code>）。<code>None</code> は「未入力」として維持され、エラーにはなりません。</p>
+<blockquote><p><strong><code>OverflowError</code> を個別に捕捉している理由:</strong> <code>&quot;inf&quot;</code> <code>&quot;-inf&quot;</code> <code>&quot;Infinity&quot;</code> <code>&quot;1e309&quot;</code> は <code>float()</code> までは成功し、<code>int()</code> で <code>OverflowError</code> になります。<code>OverflowError</code> は <code>ValueError</code> の派生ではない（基底は <code>ArithmeticError</code>）ため、この3つ目を書かないと API 層の <code>except ValueError</code> も素通りして <strong>500 になります</strong>。Python の <code>json.loads</code> は <code>Infinity</code> / <code>NaN</code> リテラルを受理するので、JSON ボディ経由で実際に到達しうる経路です。なお <code>&quot;nan&quot;</code> は <code>int()</code> で <code>ValueError</code> になります。</p></blockquote>
+<blockquote><p>以前は変換失敗時に <code>data[field] = None</code> として黙って値を捨てていました。その場合、体重と脈拍を送って脈拍だけが不正だと、<strong>脈拍が無かったことにされて体重だけが保存</strong>されていました。入力ミスに気付けないため、422 で全体を拒否する方式に変更しています。</p></blockquote>
+<h4 id="3-血圧文字列の分解">3. 血圧文字列の分解</h4>
+<pre><code class="language-python">bp = data.pop(&quot;blood_pressure&quot;, None)
+bp = re.sub(r&#x27;[－–—-]&#x27;, &#x27;/&#x27;, bp)        # 各種ハイフンを / に統一
+bp = re.sub(r&#x27;[^\d/\s]&#x27;, &#x27;&#x27;, bp)        # 数字・/・空白以外を除去（&quot;mmHg&quot; が消える）
+parts = re.split(r&#x27;[/ ]+&#x27;, bp)
+data.setdefault(&quot;systolic_bp&quot;,  int(float(parts[0])))
+data.setdefault(&quot;diastolic_bp&quot;, int(float(parts[1])))</code></pre>
+<p><code>&quot;110/75&quot;</code> <code>&quot;110－75&quot;</code> <code>&quot;110/75mmHg&quot;</code> <code>&quot;110 75&quot;</code> に対応します。</p>
+<ul><li>区切りは <code>[/ ]+</code> なので、<code>&quot;110//75&quot;</code> のように区切り文字が連続していても2要素に分かれ、正しく変換されます</li><li><strong><code>pop</code></strong> しているので <code>blood_pressure</code> キーは消え、<code>extra=&quot;forbid&quot;</code> に引っかかりません</li><li><strong><code>setdefault</code></strong> なので、<code>systolic_bp</code> が明示的に指定されていればそちらが優先されます</li></ul>
+<p><strong>有効な2つの数値へ変換できない場合は、例外にせず黙って無視します。</strong>（要素数が2でない、または数値変換に失敗した場合）。整数項目の型変換失敗が 422 になるのとは扱いが異なります。詳細と例外は第9章の注記を参照してください。</p>
+<p><code>meal_detail</code> / <code>activity_log</code> は<strong>一切触らずに通過</strong>します（コメントで「変換・結合禁止」と明記）。結合は <code>write_repository</code> の責務です。</p>
+<hr>
+<h3 id="39-time_utilspy--log_utilspy">3.9 time_utils.py / log_utils.py</h3>
+<h4 id="time_utilspy17行">time_utils.py（17行）</h4>
+<pre><code class="language-python">JST = timezone(timedelta(hours=9))     # zoneinfo ではなく固定オフセット
+def jst_date() -&gt; str: return now_jst().date().isoformat()</code></pre>
+<p>日本には夏時間が無いため固定オフセットで十分です。Streamlit 側の <code>time_utils.py</code> は <code>ZoneInfo(&quot;Asia/Tokyo&quot;)</code> を使っており、<strong>API 側と実装が違います</strong>（結果は同じ）。</p>
+<h4 id="log_utilspy26行">log_utils.py（26行）</h4>
+<p><code>mask_pii(text)</code> が以下を <code>****</code> に置換します。</p>
+<div class="table-wrap"><table><thead><tr><th scope="col">対象</th><th scope="col">パターン</th></tr></thead><tbody><tr><td><code>user_id</code></td><td>JSON形式 <code>&quot;user_id&quot;: &quot;…&quot;</code> と <code>user_id=…</code> の両方</td></tr><tr><td><code>request_id</code></td><td>同上</td></tr><tr><td>UUID</td><td><code>8-4-4-4-12</code> の16進</td></tr><tr><td>32桁の16進</td><td>ハッシュ想定</td></tr><tr><td>メールアドレス</td><td><code>***@***</code></td></tr></tbody></table></div>
+<p><code>api.py</code> の <code>log()</code> と <code>worker.py</code> の <code>_log()</code> は<strong>全出力がこれを通ります</strong>。ただし<strong>マスクしているのは識別子であって、健康値そのものは元々ログに出していません</strong>（キー名のみ出力する設計）。<code>tests/test_security_boundaries.py</code> がこれを検証しています。</p>
+<hr>
+<h3 id="310-migrations--スキーマ管理">3.10 migrations/ — スキーマ管理</h3>
+<h4 id="runnerpy126行">runner.py（126行）</h4>
+<pre><code>_acquire_lock()  → migration_lock テーブルに1行 INSERT（多重実行の防止）
+_get_applied()   → schema_migrations テーブルから適用済みIDを取得
+_load_versions() → versions/migrate_*.py を番号順に動的 import
+pending だけを BEGIN IMMEDIATE → run(conn) → INSERT schema_migrations → commit
+_release_lock()  → finally で必ず解放</code></pre>
+<ul><li><strong>ロックが残ると次回以降スキップされます。</strong> その場合はメッセージ通り <code>DELETE FROM migration_lock WHERE id = 1</code> を手動実行します（<code>CLAUDE.md</code> のデバッグチェックリストにも項目があります）</li><li>各マイグレーションは<strong>1件ずつコミット</strong>されます。3件目で失敗しても1〜2件目は適用済みのまま残ります</li><li><code>sqlite3.connect()</code> を直接呼ぶ、<code>db_manager</code> を通さない唯一の場所です。起動時に <code>uvicorn</code> より前に直列実行されるため、worker と競合しません</li></ul>
+<h4 id="versionsmigrate_001_initpy56行">versions/migrate_001_init.py（56行）</h4>
+<p>3つのブロックに分かれています。</p>
+<div class="table-wrap"><table><thead><tr><th scope="col">ブロック</th><th scope="col">内容</th><th scope="col">意図</th></tr></thead><tbody><tr><td><code>_DDL_CREATE</code></td><td><code>CREATE TABLE IF NOT EXISTS health_records</code></td><td>新規環境用</td></tr><tr><td><code>_DDL_MIGRATE</code></td><td><code>ALTER TABLE … ADD COLUMN</code>（3列）</td><td>旧 DB 用。<code>duplicate column name</code> は握りつぶす</td></tr><tr><td><code>_DDL_INDEXES</code></td><td>インデックス2本</td><td>両方の環境で必要</td></tr></tbody></table></div>
+<blockquote><p>ファイル内のコメントに「<strong>CREATE TABLE と ALTER TABLE は環境差吸収のため両方残す（削除・統合禁止）</strong>」と明記されています。冗長に見えても消さないでください。</p></blockquote>
+<p>作られるインデックス:</p>
+<pre><code class="language-sql">CREATE INDEX        idx_hr_user_date  ON health_records(user_id, date DESC)  -- 検索用
+CREATE UNIQUE INDEX uidx_hr_user_date ON health_records(user_id, date)       -- 1日1件の保証</code></pre>
+<p><strong><code>uidx_hr_user_date</code> が <code>ON CONFLICT(user_id, date)</code> の対象</strong>であり、upsert が成立する根拠です。</p>
+<p><code>created_at</code> の既定値は <code>datetime(&#x27;now&#x27;,&#x27;localtime&#x27;)</code> で、<strong>コンテナの TZ 設定に依存します</strong>。これが次項の <code>LEGACY_UTC_MAX_RECORD_ID</code> の原因です。</p>
+<hr>
+<h2 id="4-biolog_streamlit--画面">4. biolog_streamlit — 画面</h2>
+<h3 id="41-streamlit_apppy--入口90行">4.1 streamlit_app.py — 入口（90行）</h3>
+<p>Streamlit は<strong>操作のたびにスクリプト全体を上から再実行</strong>します。この構造を理解していないとコードが読めません。</p>
+<pre><code class="language-python">st.set_page_config(…)
+inject_number_input_styles()        # CSS 注入（1回だけ）
+with st.sidebar:  … フィルター・更新ボタン・ヘルスチェック
+render_summary()                    # サマリーカード
+tab_graph, tab_list, tab_create, tab_edit = st.tabs([…])
+with tab_graph: render_graph(selected_users, date_start, date_end)
+with tab_list:  render_list(…)
+with tab_create: render_create()
+with tab_edit:  render_edit()</code></pre>
+<blockquote><p><strong>4つのタブは毎回すべて実行されます。</strong> タブは表示の切り替えであって、遅延実行ではありません。したがって「一覧タブを開いていなくても一覧のAPI呼び出しは走る」ことになります。</p></blockquote>
+<p>サイドバーの「更新」ボタンは <code>clear_health_caches()</code> → <code>st.rerun()</code> の順で、キャッシュを捨ててから再描画します。</p>
+<blockquote><p><strong>注記:</strong> ヘルスチェックボタンは <code>st.success(f&quot;OK — {r.get(&#x27;db&#x27;,&#x27;&#x27;)}&quot;)</code> を表示しますが、現在の API のレスポンスに <code>db</code> キーはありません（返るのは <code>status</code> / <code>worker_alive</code> / <code>database_ok</code> / <code>queue</code>）。そのため常に「OK — 」と空欄で表示されます。API 疎通の確認としては機能しています。</p></blockquote>
+<blockquote><p><strong>注記:</strong> 開始日の既定は <code>date.today()</code>（システムのタイムゾーン）、終了日は <code>datetime.now(JST).date()</code> と実装が異なります。コンテナは <code>TZ=Asia/Tokyo</code> なので実運用では一致します。</p></blockquote>
+<hr>
+<h3 id="42-configpy--設定と定数11行">4.2 config.py — 設定と定数（11行）</h3>
+<pre><code class="language-python">API_BASE = os.getenv(&quot;BIOLOG_API_URL&quot;, &quot;http://localhost:8766&quot;)
+LEGACY_UTC_MAX_RECORD_ID = 146
+USER_LABELS = {&quot;self&quot;: &quot;自分&quot;, &quot;father&quot;: &quot;父&quot;, &quot;mother&quot;: &quot;母&quot;}
+USER_COLORS = {&quot;self&quot;: &quot;#1f77b4&quot;, &quot;father&quot;: &quot;#2ca02c&quot;, &quot;mother&quot;: &quot;#d62728&quot;}</code></pre>
+<p><strong><code>LEGACY_UTC_MAX_RECORD_ID = 146</code> は歴史的な境界値です。</strong></p>
+<ul><li>phase 7a でコンテナの TZ を <code>Asia/Tokyo</code> に変更した</li><li><code>created_at</code> の既定値は <code>datetime(&#x27;now&#x27;,&#x27;localtime&#x27;)</code></li><li>したがって <strong>ID 146 以前は naive な UTC 文字列、147 以降は naive な JST 文字列</strong>として保存されている</li><li>タイムゾーン情報が文字列に含まれていないため、<strong>ID で判別するしかない</strong></li></ul>
+<p>この定数を変えると過去データの表示時刻が9時間ずれます。</p>
+<hr>
+<h3 id="43-api_clientpy--http-クライアント83行">4.3 api_client.py — HTTP クライアント（83行）</h3>
+<h4 id="接続先の制限重要な安全機構">接続先の制限（重要な安全機構）</h4>
+<pre><code class="language-python">_LOCAL_API_HOSTS = {&quot;localhost&quot;, &quot;127.0.0.1&quot;, &quot;::1&quot;, &quot;biolog-api&quot;}
+
+def _validated_api_base(value):
+    parsed = urlparse(value)
+    if parsed.scheme != &quot;http&quot; or (parsed.hostname or &quot;&quot;).lower() not in _LOCAL_API_HOSTS:
+        raise ValueError(&quot;BIOLOG_API_URL must point to the local Biolog API&quot;)
+
+_API_BASE = _validated_api_base(API_BASE)      # ← モジュール import 時に実行</code></pre>
+<p><strong>環境変数で外部URLを指定しても、モジュールの読み込み時点で例外になりアプリが起動しません。</strong> 健康データが外部へ送られる経路を設定ミスや改変で作れないようにする仕組みです。</p>
+<pre><code class="language-python">_SESSION.trust_env = False</code></pre>
+<p><code>HTTP_PROXY</code> / <code>HTTPS_PROXY</code> などの環境変数を<strong>無視</strong>します。プロキシ経由で外部へ抜けることを防ぎます。<code>tests/test_security_boundaries.py</code> が両方を検証しています。</p>
+<h4 id="エラーの扱い">エラーの扱い</h4>
+<pre><code class="language-python">class ApiClientError(Exception):
+    def __init__(self, message, status_code=None): …</code></pre>
+<p>HTTP エラー時は<strong>レスポンス JSON の <code>detail</code></strong> を取り出してメッセージにします（FastAPI の <code>HTTPException(detail=…)</code> がそのまま画面に出る経路）。</p>
+<p>タイムアウトは GET 10秒、POST/PUT/DELETE 30秒。書き込みは Queue 待ちがあるため長めです。</p>
+<blockquote><p><strong>注記:</strong> <code>api_post</code> / <code>api_put</code> / <code>api_delete</code> には <code>except Exception</code> の受けがありますが、<strong><code>api_get</code> には HTTPError の受けしかありません</strong>。API が停止しているときの <code>ConnectionError</code> は <code>ApiClientError</code> に変換されず、呼び出し側の <code>except ApiClientError</code> を素通りします。API 停止時、書き込み操作は整形されたエラー表示になり、読み取りは Streamlit の例外画面になる、という差が出ます。</p></blockquote>
+<hr>
+<h3 id="44-cachepy--読み取りキャッシュ49行">4.4 cache.py — 読み取りキャッシュ（49行）</h3>
+<pre><code class="language-python">def current_data_version() -&gt; int:
+    if _DATA_VERSION_KEY not in st.session_state:
+        st.session_state[_DATA_VERSION_KEY] = int(time.time())
+    return st.session_state[_DATA_VERSION_KEY]
+
+def bump_data_version() -&gt; int:
+    st.session_state[_DATA_VERSION_KEY] = current_data_version() + 1
+    return st.session_state[_DATA_VERSION_KEY]
+
+@st.cache_data(ttl=10)
+def fetch_range_data(start, end, version): …
+@st.cache_data(ttl=10)
+def fetch_latest(uid, version): …
+
+def clear_health_caches():
+    fetch_latest.clear()
+    fetch_range_data.clear()
+    bump_data_version()</code></pre>
+<p><strong>キャッシュ無効化は三層構成</strong>です（ルール9）。1つでは足りないため、3つを併用します。</p>
+<div class="table-wrap"><table><thead><tr><th scope="col">層</th><th scope="col">粒度</th><th scope="col">役割</th></tr></thead><tbody><tr><td><code>fetch_*.clear()</code></td><td>プロセス全体</td><td>書き込み直後に、今あるキャッシュをすべて捨てる</td></tr><tr><td><code>data_version</code></td><td>セッション単位</td><td>キャッシュキーの世代を進め、古い世代を参照しない</td></tr><tr><td><code>ttl=10</code></td><td>時間</td><td>反映前の値を掴んでしまった場合の滞留時間を10秒で打ち切る</td></tr></tbody></table></div>
+<p><strong>読み取り側</strong>は <code>version</code> をキャッシュキーの一部として渡します。関数本体では使いません。</p>
+<pre><code class="language-python"># views/summary.py
+latest = fetch_latest(uid, current_data_version())
+# views/graph.py
+data = fetch_range_data(str(date_start), str(date_end), current_data_version())</code></pre>
+<p><strong>書き込み側</strong>は既存の <code>clear_health_caches()</code> を呼ぶだけです。サイドバーの「更新」・新規登録・修正・削除の4経路がこれを呼び、キャッシュ破棄と世代更新が同時に起きます。増分処理を <code>clear_health_caches()</code> の中に置いてあるため、呼び出し側は変更不要です。</p>
+<p><code>data_version</code> の初期値に <code>int(time.time())</code> を使うのは、<code>0</code> 起点だと新しいセッションが過去セッションのキャッシュキー <code>(uid, 0)</code> に衝突して古い値を再表示するためです（v1.5.5 で旧 version 機構を廃止した原因）。</p>
+<blockquote><p><strong>version 機構を単独で使ってはいけません。</strong> <code>.clear()</code> と <code>ttl=10</code> を含む現在の三層構成を維持してください。この機構は v1.5.7 で導入された後、v1.6.0 の非破壊分割の際に廃止理由の記録なく失われ、v1.7.8 で復元された経緯があります。回帰テストは <code>tests/test_streamlit_cache_version.py</code>。</p></blockquote>
+<blockquote><p><strong>一覧タブはこのキャッシュを使いません。</strong> <code>list_view.py</code> は <code>api_get</code> を直接呼びます。理由は次項。</p></blockquote>
+<hr>
+<h3 id="45-viewssummarypy--上部のサマリーカード27行">4.5 views/summary.py — 上部のサマリーカード（27行）</h3>
+<p>3列に「自分・父・母」を並べ、各人の <code>fetch_latest(uid)</code> を表示します。</p>
+<pre><code class="language-python">st.metric(&quot;体重&quot;, f&quot;{latest[&#x27;weight&#x27;]:.1f} kg&quot; if latest.get(&quot;weight&quot;) is not None else &quot;—&quot;)</code></pre>
+<p>値が無い項目は <code>—</code>。<code>latest</code> そのものが None（記録なし）なら「データなし」。</p>
+<p><strong>最新1件のレコードの値をそのまま出すため、その日に体重だけ記録していれば体温は <code>—</code> になります。</strong> 過去の値で埋めることはしません。</p>
+<hr>
+<h3 id="46-viewsgraphpy--chartspy--グラフ">4.6 views/graph.py + charts.py — グラフ</h3>
+<h4 id="graphpy39行">graph.py（39行）</h4>
+<pre><code class="language-python">data = fetch_range_data(str(date_start), str(date_end))     # キャッシュ経由
+df = pd.DataFrame(data)
+df[&quot;date&quot;] = pd.to_datetime(df[&quot;date&quot;]).dt.normalize()
+df = df[df[&quot;user_id&quot;].isin(selected_users)]
+df = df.sort_values(&quot;date&quot;).groupby([&quot;user_id&quot;, &quot;date&quot;], as_index=False).last()</code></pre>
+<p><code>groupby(...).last()</code> は、同一ユーザー・同一日付が複数あった場合に<strong>最後の1件だけを残す</strong>保険です（UNIQUE 制約があるため通常は発生しません）。</p>
+<p>描画は体重・体温・血圧・脈拍の4種類。</p>
+<h4 id="chartspy96行">charts.py（96行）</h4>
+<pre><code class="language-python">import japanize_matplotlib      # import するだけで日本語フォントが有効になる
+plt.style.use(&quot;dark_background&quot;)</code></pre>
+<ul><li>ユーザーごとに <code>USER_COLORS</code> の固定色で描き分け</li><li>血圧グラフのみ<strong>収縮期を実線・拡張期を破線</strong>にし、<code>axhline</code> で <strong>120 / 80 の目安線</strong>を引く</li><li>小数表示が必要な項目（体重・体温・体脂肪率・筋肉量）は <code>FuncFormatter</code> で小数第1位に固定</li><li><code>ax.set_xticks(all_dates)</code> は <strong>df 全体の日付</strong>を目盛りにします。表示中のユーザーに値が無い日も目盛りとして現れます</li><li>データが1件も無ければ <code>st.info(&quot;…のデータがありません&quot;)</code> を出して図を描きません</li><li><code>plt.clf()</code> / <code>plt.close(fig)</code> / <code>clear_figure=True</code> で figure を都度破棄（再実行のたびに図が増えるのを防ぐ）</li></ul>
+<hr>
+<h3 id="47-viewslist_viewpy--一覧とcsv151行">4.7 views/list_view.py — 一覧とCSV（151行）</h3>
+<h4 id="10秒ごとの自動更新">10秒ごとの自動更新</h4>
+<pre><code class="language-python">@st.fragment(run_every=&quot;10s&quot;)
+def render_list(selected_users, date_start, date_end): …</code></pre>
+<p><code>st.fragment</code> は<strong>この関数だけを再実行</strong>します。ページ全体の再実行ではないので、他タブの入力途中の内容が消えません。</p>
+<p>キャッシュを使わず <code>api_get</code> を直接呼ぶのは、10秒ごとに動く fragment が<strong>キャッシュではなく実データを取りに行く</strong>必要があるためです。</p>
+<h4 id="表示の組み立て">表示の組み立て</h4>
+<pre><code>records → _filter_records()（選択ユーザーで絞る）
+       → sort_values([&quot;date&quot;,&quot;id&quot;], ascending=[False,False])
+       → ページング（page_size = 20）
+       → _prepare_display()（日本語列名・列順・JST変換）
+       → 長文の省略（メモ40 / 食事ログ80 / 行動ログ200文字）
+       → render_safe_table()
+       → 省略された分だけ expander で全文表示</code></pre>
+<p><code>_prepare_display()</code> は <code>created_at</code> を <code>to_jst(値, record_id=id)</code> で変換します。前述の ID 146 境界がここで効きます。</p>
+<h4 id="csv出力の2つの工夫">CSV出力の2つの工夫</h4>
+<pre><code class="language-python">def _sanitize_csv_value(value):
+    if isinstance(value, str) and value.startswith((&quot;=&quot;, &quot;+&quot;, &quot;-&quot;, &quot;@&quot;)):
+        return &quot;&#x27;&quot; + value
+    return value</code></pre>
+<p><strong>CSV インジェクション（数式インジェクション）対策</strong>です。<code>=1+1</code> や <code>=cmd|...</code> で始まるセルを Excel が数式として実行してしまうのを防ぐため、先頭に <code>&#x27;</code> を付けます。</p>
+<pre><code class="language-python">csv = disp_csv.to_csv(index=False, encoding=&quot;utf-8-sig&quot;)</code></pre>
+<p><strong>BOM 付き UTF-8</strong>。Excel で開いたときに文字化けしないようにするためです。</p>
+<blockquote><p>CSV に出力されるのは<strong>ページングされる前の全件</strong>（選択ユーザー × 指定期間）です。画面に見えている20件だけではありません。</p></blockquote>
+<hr>
+<h3 id="48-safe_tablepy--xss-の境界48行">4.8 safe_table.py — XSS の境界（48行）</h3>
+<pre><code class="language-python">def dataframe_to_safe_html(df):
+    display_df = df.astype(object).where(pd.notna(df), &quot;&quot;)
+    table_html = display_df.to_html(index=False, escape=True, …)
+    return f&#x27;{_TABLE_STYLE}&lt;div class=&quot;biolog-table-wrap&quot;&gt;{table_html}&lt;/div&gt;&#x27;
+
+def render_safe_table(df):
+    st.markdown(dataframe_to_safe_html(df), unsafe_allow_html=True)</code></pre>
+<p><strong>アプリ全体で <code>unsafe_allow_html=True</code> を使うのはここだけです。</strong></p>
+<p>安全性は次の2点で担保されています。</p>
+<ol><li><code>escape=True</code> により、セルの値・列名がすべて HTML エスケープされる</li><li>ラッパー部分は定数のみで、ユーザー値を文字列補間しない</li></ol>
+<p>コード内のコメントにも「table_html is the only non-constant HTML inserted here」と明記されています。<code>tests/test_streamlit_refresh_policy.py</code> が「<code>unsafe_allow_html</code> が他所に増えていないこと」を回帰テストとして検証しています。</p>
+<p><code>white-space: pre-wrap</code> により、メモ内の改行がそのまま表示されます。</p>
+<hr>
+<h3 id="49-入力フォーム群">4.9 入力フォーム群</h3>
+<p>登録・修正フォームは4ファイルに分かれています。</p>
+<div class="table-wrap"><table><thead><tr><th scope="col">ファイル</th><th scope="col">責務</th></tr></thead><tbody><tr><td><code>form_fields.py</code></td><td>項目の定義（<strong>唯一の出典</strong>）</td></tr><tr><td><code>form_components.py</code></td><td>ウィジェットの描画と session_state の同期</td></tr><tr><td><code>form_state.py</code></td><td>3方向マージのアルゴリズム（Streamlit 非依存）</td></tr><tr><td><code>payloads.py</code></td><td>送信ボディの組み立てと検証</td></tr></tbody></table></div>
+<h4 id="form_fieldspy28行">form_fields.py（28行）</h4>
+<pre><code class="language-python">@dataclass(frozen=True)
+class NumberField:
+    name, label, min_value, max_value, step, cast, fmt, create_group, edit_group</code></pre>
+<p><code>create_group</code> / <code>edit_group</code> は <code>&quot;left&quot;</code> / <code>&quot;right&quot;</code> で、<strong>2列レイアウトのどちらに置くか</strong>を指定します。</p>
+<blockquote><p>コメントに「Keep this order identical to the create/edit form display order.」とあり、<code>tests/test_streamlit_payloads.py</code> の <code>test_form_fields_order_and_layout_groups_match_existing_forms</code> が順序とグループを固定しています。並べ替えるとテストが落ちます。</p></blockquote>
+<h4 id="form_componentspy120行-登録と修正でウィジェットが違う">form_components.py（120行）— 登録と修正でウィジェットが違う</h4>
+<pre><code class="language-python">def _create_measurement_input(field, key):
+    return st.text_input(field.label, value=&quot;&quot;, key=f&quot;{key}_text&quot;)   # ← 登録は text_input</code></pre>
+<p><strong>登録フォームは <code>number_input</code> ではなく <code>text_input</code> を使います。</strong> <code>number_input</code> は未入力状態を保てず <code>min_value</code> に落ちてしまうため、「入力していない」と「最小値を入力した」を区別する目的です。文字列で受け取り、<code>payloads.py</code> 側で数値化と範囲検証を行います。</p>
+<p>修正フォームは <code>number_input</code> を使いますが、値の渡し方が繊細です。</p>
+<pre><code class="language-python">if key not in st.session_state:
+    kwargs[&quot;value&quot;] = value          # 初回だけ既定値を渡す
+elif st.session_state[key] is None:
+    kwargs[&quot;value&quot;] = None           # 空のままを維持
+# それ以外は value を渡さない（session_state の値が使われる）</code></pre>
+<p>コメントにある通り、ここで <code>session_state</code> のキーを削除すると、実ブラウザで Streamlit がウィジェットを <code>min_value</code> で作り直してしまいます。<strong>空欄が勝手に最小値になる不具合</strong>への対処です。</p>
+<h4 id="form_statepy53行-3方向マージ">form_state.py（53行）— 3方向マージ</h4>
+<p>修正画面は10秒ごとに API の値を取り直します。そのとき「入力途中の値」を消さないためのアルゴリズムです。</p>
+<pre><code class="language-python">merge_measurement_values(field_names, api_values, previous_api_values, widget_values)</code></pre>
+<p>3つを突き合わせます。</p>
+<ul><li><code>api_values</code>: いま API から返ってきた値</li><li><code>previous_api_values</code>: 前回同期したときの API の値（ベースライン）</li><li><code>widget_values</code>: 画面で編集中の値</li></ul>
+<div class="table-wrap"><table><thead><tr><th scope="col">条件</th><th scope="col">採用する値</th><th scope="col">備考</th></tr></thead><tbody><tr><td>ベースラインが無い（初回）</td><td>API 値</td><td>全項目</td></tr><tr><td>ウィジェットが未生成</td><td>API 値</td><td>—</td></tr><tr><td>API が前回から変わっていない</td><td><strong>ウィジェット値</strong></td><td>ユーザーの編集を保持</td></tr><tr><td>ウィジェット値がベースラインまたは現 API 値と同じ</td><td>API 値</td><td>実質編集していない</td></tr><tr><td>上記以外（両方変わった）</td><td><strong>ウィジェット値</strong> ＋ <strong>競合として記録</strong></td><td>入力を優先し警告</td></tr></tbody></table></div>
+<pre><code class="language-python">def _same_value(left, right) -&gt; bool:
+    return type(left) is type(right) and left == right</code></pre>
+<p><strong>型まで一致を要求します。</strong> <code>1</code>（int）と <code>1.0</code>（float）は別物、<code>None</code> と <code>0</code> も別物として扱われます。<code>0 == False</code> のような Python の緩い比較で誤判定しないための措置で、<code>tests/test_streamlit_form_state.py</code> が検証しています。</p>
+<p>競合が出ると <code>edit.py</code> が警告と「競合項目を最新値に置換」ボタンを出し、押すと <code>accept_latest_measurements()</code> が<strong>競合した項目だけ</strong> API 値で上書きします。</p>
+<p>このモジュールは Streamlit に依存しない純粋関数なので、単体テストが容易です。</p>
+<h4 id="payloadspy56行">payloads.py（56行）</h4>
+<pre><code class="language-python">def _add_measurements(body, values):
+    for field in MEASUREMENT_FIELDS:
+        value = values.get(field.name)
+        if value is None or (isinstance(value, str) and not value.strip()): continue
+        validate_range = isinstance(value, str)          # ← 文字列のときだけ範囲検証
+        converted = field.cast(value)                    # 失敗 → ValueError（日本語メッセージ）
+        if validate_range and 範囲外: raise ValueError(…)
+        body[field.name] = converted</code></pre>
+<p><strong>範囲検証は値が文字列のときだけ</strong>行います。登録フォーム（<code>text_input</code>）は文字列なので検証され、修正フォーム（<code>number_input</code>）は既に min/max で制限済みなので再検証しません。</p>
+<pre><code class="language-python">body[&quot;memo&quot;] = memo or &quot;&quot;
+body[&quot;meal_detail&quot;] = meal_detail or &quot;&quot;
+body[&quot;activity_log&quot;] = activity_log or &quot;&quot;</code></pre>
+<p>テキストは<strong>常に送ります</strong>（空なら空文字）。サーバ側の <code>NULLIF(…, &#x27;&#x27;)</code> により、空文字は「既存を残す」と解釈されます。</p>
+<hr>
+<h3 id="410-viewscreatepy--新規登録54行">4.10 views/create.py — 新規登録（54行）</h3>
+<pre><code class="language-python">with st.form(&quot;create_form&quot;):
+    ユーザー選択・日付・測定値・メモ・食事ログ・行動ログ
+    submitted = st.form_submit_button(&quot;登録&quot;)
+
+if submitted:
+    body = build_create_payload(…)     # ValueError → st.error して return
+    result = api_post(&quot;/api/health/record&quot;, body)
+    st.success(&quot;登録を受け付けました（反映には数秒かかる場合があります）&quot;)
+    clear_health_caches()
+    st.rerun()</code></pre>
+<p><code>st.form</code> を使うことで、<strong>送信ボタンを押すまで再実行が起きません</strong>（入力中に毎回スクリプトが走らない）。</p>
+<p>「反映には数秒かかる場合があります」という文言は、Queue 経由で worker が直列に書き込む実装を踏まえたものです。</p>
+<p><strong>ただし、これは fire-and-forget の非同期書き込みではありません。</strong> <code>_enqueue_and_wait</code> が結果を最大30秒待つため、<strong>API は DB 書き込みの完了を待ってから応答します</strong>。</p>
+<pre><code>Streamlit → API → Queue投入 → workerがDB書き込み → result_queueへ結果
+                     ↑                                    │
+                     └──── APIは結果を待つ（最大30秒）────┘
+                                    ↓
+                            HTTPレスポンス</code></pre>
+<p>したがってレスポンスが返った時点で worker の処理は成功しています。この文言は「保存が後回しになる」という意味ではなく、<strong>Queue の滞留やロック再試行によって応答までに時間がかかりうる</strong>ことを示すものと読むのが実装に即しています。</p>
+<blockquote><p>表示文言と実装にはわずかなずれがあります。「受け付けました」は非同期処理を連想させますが、実際には保存完了後に表示されます。不具合ではありません。文言を変える場合の対象は <code>views/create.py</code> の1箇所です。</p></blockquote>
+<p>日付の既定値は <code>datetime.now(JST).date()</code>。</p>
+<hr>
+<h3 id="411-viewseditpy--修正と削除166行">4.11 views/edit.py — 修正と削除（166行）</h3>
+<h4 id="修正の流れ">修正の流れ</h4>
+<pre><code>ユーザー選択
+ → GET /records?user_id=…&amp;limit=500 で登録済み日付一覧を作る
+ → 日付を選択
+ → GET /record/day?user_id=…&amp;date=… で該当レコードを取得
+ → sync_edit_measurement_state()  ← ウィジェット生成の「前」に session_state を整える
+ → 競合があれば警告＋置換ボタン
+ → st.form で編集
+ → PUT /record/{id}</code></pre>
+<pre><code class="language-python">edit_key_prefix = f&quot;edit_{edit_user}_{edit_date}&quot;</code></pre>
+<p><strong>キー名にユーザーと日付を含めます。</strong> 別のレコードを選ぶと別の session_state キーになるため、前のレコードの入力が混ざりません。</p>
+<p>日付一覧は <code>limit=500</code> で取得します。<strong>501件目以降の日付は編集リストに出てきません。</strong></p>
+<h4 id="削除の流れ">削除の流れ</h4>
+<pre><code class="language-python">if st.session_state.get(&quot;clear_del_id&quot;):        # 前回の削除後にフラグが立っている
+    st.session_state[&quot;del_id&quot;] = None           # 入力欄をリセット
+    del st.session_state[&quot;clear_del_id&quot;]
+
+delete_id = st.number_input(&quot;削除するレコード ID&quot;, min_value=1, step=1, value=None, key=&quot;del_id&quot;)</code></pre>
+<p>Streamlit ではウィジェット生成後に自分の <code>session_state</code> を書き換えられないため、<strong>「次回の実行の冒頭でリセットする」フラグ方式</strong>を使っています。削除成功時に <code>clear_del_id = True</code> を立て、<code>st.rerun()</code> します。</p>
+<p>削除は3段構えです。</p>
+<ol><li>ID を入力すると <code>GET /record/{id}</code> でプレビューを表示（<code>request_id</code> は伏せる）</li><li>確認チェックボックスを入れるまで「削除実行」ボタンは <code>disabled</code></li><li><code>DELETE /record/{id}</code></li></ol>
+<p>存在しない ID なら「ID N のレコードは存在しません」と表示します。</p>
+<hr>
+<h3 id="412-ui_stylepy--css注入52行">4.12 ui_style.py — CSS注入（52行）</h3>
+<pre><code class="language-python">def inject_number_input_styles() -&gt; None:
+    st.html(_NUMBER_INPUT_STYLE)</code></pre>
+<p><code>st.number_input</code> が入力欄に重ねて描画する「Press Enter to submit form」の案内が、列幅の狭い修正画面で数値と重なって読めなくなる問題への対処です。</p>
+<ul><li>案内の非表示は <strong><code>number_input</code> 配下に限定</strong>（メモ・食事ログのテキスト入力では従来どおり表示）</li><li><code>[data-testid=&quot;stNumberInput&quot;]</code> と <code>.stNumberInput</code> の<strong>両方を併記</strong>し、Streamlit 側の名称変更に備えている</li><li>ステップボタンには手を入れない</li><li>万一セレクタが効かなくなっても「案内が再表示されるだけ」で機能は壊れない</li></ul>
+<p><strong>定数のみを注入し、値を埋め込みません。</strong> <code>tests/test_streamlit_refresh_policy.py</code> が「<code>st.html</code> の使用箇所はこのモジュールだけ」「注入はアプリ入口から1回だけ」を検証しています。</p>
+<hr>
+<h2 id="5-データモデル">5. データモデル</h2>
+<h3 id="health_records-テーブル">health_records テーブル</h3>
+<div class="table-wrap"><table><thead><tr><th scope="col">列</th><th scope="col">型</th><th scope="col">制約</th><th scope="col">備考</th></tr></thead><tbody><tr><td><code>id</code></td><td>INTEGER</td><td>PRIMARY KEY AUTOINCREMENT</td><td></td></tr><tr><td><code>request_id</code></td><td>TEXT</td><td>NOT NULL <strong>UNIQUE</strong></td><td>冪等性の鍵</td></tr><tr><td><code>date</code></td><td>TEXT</td><td>NOT NULL</td><td><code>YYYY-MM-DD</code>（対象日）</td></tr><tr><td><code>user_id</code></td><td>TEXT</td><td>NOT NULL</td><td><code>self</code> / <code>father</code> / <code>mother</code></td></tr><tr><td><code>temperature</code></td><td>REAL</td><td></td><td>体温</td></tr><tr><td><code>pulse</code></td><td>INTEGER</td><td></td><td>脈拍</td></tr><tr><td><code>systolic_bp</code></td><td>INTEGER</td><td></td><td>収縮期血圧</td></tr><tr><td><code>diastolic_bp</code></td><td>INTEGER</td><td></td><td>拡張期血圧</td></tr><tr><td><code>weight</code></td><td>REAL</td><td></td><td>体重</td></tr><tr><td><code>body_fat</code></td><td>REAL</td><td></td><td>体脂肪率</td></tr><tr><td><code>muscle_mass</code></td><td>REAL</td><td></td><td>筋肉量</td></tr><tr><td><code>bmr</code></td><td>INTEGER</td><td></td><td>基礎代謝</td></tr><tr><td><code>meal_detail</code></td><td>TEXT</td><td></td><td>食事ログ（<strong>追記される</strong>）</td></tr><tr><td><code>activity_log</code></td><td>TEXT</td><td></td><td>行動ログ（<strong>追記される</strong>）</td></tr><tr><td><code>memo</code></td><td>TEXT</td><td>NOT NULL DEFAULT &#x27;&#x27;</td><td>メモ</td></tr><tr><td><code>created_at</code></td><td>TEXT</td><td>NOT NULL DEFAULT <code>datetime(&#x27;now&#x27;,&#x27;localtime&#x27;)</code></td><td><strong>TZ依存。ID146が境界</strong></td></tr></tbody></table></div>
+<p>インデックス:</p>
+<pre><code class="language-sql">idx_hr_user_date   (user_id, date DESC)   -- 検索の高速化
+uidx_hr_user_date  UNIQUE (user_id, date) -- 1人1日1件の保証 ＋ upsert の対象</code></pre>
+<p>補助テーブル: <code>schema_migrations</code>（適用済みマイグレーション）、<code>migration_lock</code>（多重実行防止）</p>
+<h3 id="押さえるべき性質">押さえるべき性質</h3>
+<ul><li><strong><code>created_at</code> は「レコードが作られた時刻」であって、upsert で更新されません。</strong> 同じ日に追記しても初回の時刻のままです</li><li><strong><code>date</code> は対象日</strong>であり、記録操作をした日ではありません</li><li><code>updated_at</code> に相当する列はありません</li></ul>
+<hr>
+<h2 id="6-1件の登録を最初から最後まで追う">6. 1件の登録を最初から最後まで追う</h2>
+<p>「体重 62.5 kg、行動ログ『散歩30分』を登録」する場合の全経路です。</p>
+<pre><code>① views/create.py
+   st.form_submit_button(&quot;登録&quot;) が押される
+
+② payloads.build_create_payload()
+   {&quot;request_id&quot;: &quot;&lt;uuid4&gt;&quot;, &quot;user_id&quot;: &quot;self&quot;, &quot;date&quot;: &quot;2026-08-15&quot;,
+    &quot;memo&quot;: &quot;&quot;, &quot;weight&quot;: 62.5, &quot;meal_detail&quot;: &quot;&quot;, &quot;activity_log&quot;: &quot;散歩30分&quot;}
+   weight は text_input の文字列 &quot;62.5&quot; → float(62.5) に変換され、範囲(0.1〜299.9)を検証
+
+③ api_client.api_post(&quot;/api/health/record&quot;, body)
+   POST http://biolog-api:8766/api/health/record（timeout 30秒）
+
+④ api.create_record()
+   raw = await request.json()
+   ログ: REQ_START → API_IN
+
+⑤ preprocess.preprocess_record(raw)
+   request_id / date は既にあるので補完なし
+   blood_pressure キーは無いので分解なし
+   ログ: PREPROCESS
+
+⑥ schemas.HealthRecordCreate(**preprocessed)
+   extra=&quot;forbid&quot; で未知キー検査、weight の範囲検査、
+   at_least_one_health_value で「何か入っている」ことを確認
+   失敗すれば ここで 422、ログ: VALIDATION status=error
+
+⑦ api._enqueue_and_wait(&quot;insert&quot;, payload)
+   専用の result_queue を作って Queue へ put
+   Queue が満杯なら 503
+   result_queue.get(timeout=30) でブロック
+
+⑧ worker.worker_loop() が task を取得
+   _execute_with_retry() → _execute_once() → insert_record(payload)
+
+⑨ write_repository.insert_record()
+   db_manager.get_connection(write=True)
+     → PRAGMA journal_mode=DELETE / busy_timeout=1000 / foreign_keys=ON
+     → BEGIN IMMEDIATE
+   既存の (self, 2026-08-15) を SELECT
+     あれば _merge_log_entries() で activity_log を追記マージ
+   INSERT … ON CONFLICT(user_id, date) DO UPDATE
+     数値は COALESCE、テキストは COALESCE(NULLIF(…,&#x27;&#x27;))
+   commit → close
+   返り値 {&quot;id&quot;: 123}
+   （request_id が衝突していたら {&quot;idempotent&quot;: True, &quot;id&quot;: 既存id}）
+
+⑩ worker が result_queue に {&quot;status&quot;:&quot;success&quot;,&quot;id&quot;:123} を put
+   ログ: op=insert status=success（mask_pii 適用済み）
+
+⑪ api が受け取り {&quot;message&quot;:&quot;登録完了&quot;,&quot;request_id&quot;:…,&quot;status&quot;:&quot;success&quot;,&quot;id&quot;:123} を 201 で返す
+   ログ: REQ_END
+
+⑫ views/create.py
+   st.success(&quot;登録を受け付けました…&quot;)
+   clear_health_caches()   ← fetch_latest / fetch_range_data のキャッシュを破棄
+   st.rerun()              ← 画面を再描画。サマリーとグラフに新しい値が出る</code></pre>
+<p><strong>ロック競合が起きた場合</strong>は ⑧ で最大5回、0.1→0.2→0.4→0.8 秒の間隔で再試行します。それでも駄目なら <code>database</code> エラーとして 500 が返ります。</p>
+<hr>
+<h2 id="7-tests--何を守っているテストか">7. tests — 何を守っているテストか</h2>
+<p><code>pytest</code> で実行します（<code>requirements-test.txt</code> に両サービスの依存が入っています）。</p>
+<h3 id="conftestpy--本番dbを絶対に触らない仕組み">conftest.py — 本番DBを絶対に触らない仕組み</h3>
+<pre><code class="language-python">REAL_DB = (ROOT / &quot;data&quot; / &quot;biolog.db&quot;).resolve()
+
+@pytest.fixture
+def temp_db_modules(tmp_path, monkeypatch):
+    db_path = (tmp_path / &quot;biolog_test.db&quot;).resolve()
+    assert db_path != REAL_DB
+    assert ROOT not in db_path.parents          # ← リポジトリ配下でないことも確認
+    monkeypatch.setenv(&quot;DATABASE_PATH&quot;, str(db_path))
+    …
+    for name in (&quot;db_manager&quot;, &quot;write_repository&quot;, &quot;biocore&quot;):
+        sys.modules.pop(name, None)             # ← 環境変数を読み直させる</code></pre>
+<p><code>db_manager</code> は import 時に <code>DATABASE_PATH</code> を読むため、<strong>モジュールキャッシュを捨ててから再 import</strong> しないとテスト用DBに切り替わりません。二重の <code>assert</code> で本番DBを指していないことを確認しています。</p>
+<h3 id="テストファイルの担当範囲">テストファイルの担当範囲</h3>
+<div class="table-wrap"><table><thead><tr><th scope="col">ファイル</th><th scope="col">守っているもの</th></tr></thead><tbody><tr><td><code>test_api_boundaries.py</code></td><td>ページネーション上限、日付形式、不正JSON、期間の逆転</td></tr><tr><td><code>test_api_preprocess_schemas.py</code></td><td>欠損補完、血圧分解、既存BP優先、各値の範囲、<code>extra=&quot;forbid&quot;</code></td></tr><tr><td><code>test_api_repository_biocore.py</code></td><td><strong>upsert の値保護、ログの追記マージ、冪等性、更新・削除の not found</strong></td></tr><tr><td><code>test_created_at_timezone.py</code></td><td><strong>ID 146 境界の時刻変換</strong>（旧UTC / 新JST / aware値 / ID欠損）</td></tr><tr><td><code>test_healthcheck.py</code></td><td>ヘルスチェックの状態判定、<code>check_database</code> が読み取り専用であること</td></tr><tr><td><code>test_list_filters.py</code></td><td>ユーザー絞り込み（<strong>未選択時に全件へフォールバックしない</strong>）、CSV数式の無害化</td></tr><tr><td><code>test_read_retry.py</code></td><td>ロック時の再試行回数、ロック以外は再試行しないこと</td></tr><tr><td><code>test_requirement_constraints.py</code></td><td>両サービスの依存バージョン固定が矛盾しないこと</td></tr><tr><td><code>test_security_boundaries.py</code></td><td><strong>CORS ミドルウェア不在</strong>、ログに健康値が出ないこと、外部URL拒否、プロキシ無視</td></tr><tr><td><code>test_streamlit_form_state.py</code></td><td><strong>3方向マージの全分岐</strong>、空欄が最小値に落ちないこと</td></tr><tr><td><code>test_streamlit_payloads.py</code></td><td>ペイロード組み立て、型保持、0 と None の区別、項目順序の固定</td></tr><tr><td><code>test_streamlit_refresh_policy.py</code></td><td><strong><code>unsafe_allow_html</code> / <code>st.html</code> の使用箇所の限定</strong>、fragment の維持</td></tr><tr><td><code>test_worker_resilience.py</code></td><td><strong>worker が1件の失敗で死なないこと</strong>、エラー種別のHTTP変換、タイムアウト503</td></tr></tbody></table></div>
+<p><strong>回帰テストとして「コードの書き方そのもの」を検査しているものがあります。</strong> 例えば <code>test_security_boundaries.py</code> はソースを読んで CORS ミドルウェアが追加されていないことを確認し、<code>test_streamlit_refresh_policy.py</code> は <code>unsafe_allow_html</code> が <code>safe_table.py</code> 以外に現れていないことを確認します。<strong>安全側の設計を後から崩さないための仕掛け</strong>です。</p>
+<hr>
+<h2 id="8-起動と運用">8. 起動と運用</h2>
+<h3 id="docker-composeyml">docker-compose.yml</h3>
+<div class="table-wrap"><table><thead><tr><th scope="col">設定</th><th scope="col">値</th><th scope="col">意図</th></tr></thead><tbody><tr><td>ポート</td><td><code>127.0.0.1:8766</code> / <code>127.0.0.1:8501</code></td><td><strong>ループバックのみ</strong>。LAN から見えない</td></tr><tr><td><code>cap_drop</code></td><td><code>ALL</code></td><td>Linux ケーパビリティを全放棄</td></tr><tr><td><code>volumes</code></td><td><code>${BIOLOG_DATA_DIR:-./data}:/data</code></td><td>DB の置き場所を環境変数で差し替え可能</td></tr><tr><td><code>TZ</code></td><td><code>Asia/Tokyo</code></td><td><code>created_at</code> の既定値に影響（ID146境界の原因）</td></tr><tr><td><code>restart</code></td><td><code>unless-stopped</code></td><td></td></tr><tr><td><code>logging</code></td><td>10MB × 3ファイル</td><td>ログの無制限肥大を防ぐ</td></tr><tr><td>healthcheck</td><td>API は <code>status==&quot;ok&quot;</code>、Streamlit は <code>/_stcore/health</code></td><td></td></tr></tbody></table></div>
+<p>両コンテナとも Dockerfile で <strong>UID/GID 10001 の非 root ユーザー</strong>を作って実行します。</p>
+<h3 id="起動順序">起動順序</h3>
+<pre><code>docker compose up
+  └─ biolog-api
+       └─ entrypoint.sh
+            ├─ python migrations/runner.py     ← 先にマイグレーション
+            └─ exec uvicorn api:app …          ← 完了後にAPI起動
+  └─ biolog-streamlit（depends_on: biolog-api）</code></pre>
+<p><code>depends_on</code> はコンテナの起動順のみを保証し、API の準備完了は待ちません。Streamlit が先に接続を試みてエラーになった場合は、画面を再読み込みすれば回復します。</p>
+<h3 id="バッチファイル">バッチファイル</h3>
+<div class="table-wrap"><table><thead><tr><th scope="col">ファイル</th><th scope="col">内容</th></tr></thead><tbody><tr><td><code>start_biolog.bat</code></td><td><code>cd /d &quot;%~dp0&quot;</code> で自身の場所へ移動 → Docker 接続確認 → <code>docker compose up -d</code> → <code>/_stcore/health</code> を最大300秒ポーリング → ブラウザを開く</td></tr><tr><td><code>rebuild_and_start_biolog.bat</code></td><td>上記に <code>--build</code> を付けて実行</td></tr><tr><td><code>stop_biolog.bat</code></td><td><code>docker compose down</code></td></tr></tbody></table></div>
+<p><strong>パスをハードコードしていない</strong>ため、開発用の C: ドライブでも運用用の D: ドライブでも、コピーするだけで動きます。</p>
+<hr>
+<h2 id="9-コードを読むときの注意点">9. コードを読むときの注意点</h2>
+<h3 id="挙動として知っておくべきこと">挙動として知っておくべきこと</h3>
+<div class="table-wrap"><table><thead><tr><th scope="col">項目</th><th scope="col">内容</th></tr></thead><tbody><tr><td><strong>値は消せない</strong></td><td>数値は NULL、テキストは空文字が「既存を残す」の意味です。API 経由で項目を空にする手段はありません</td></tr><tr><td><strong>ログは積み上がる</strong></td><td>同じ日に登録を繰り返すと、食事ログと行動ログは行単位で追記されます。数値は上書きです</td></tr><tr><td><strong>日付と人は変更不可</strong></td><td><code>HealthRecordUpdate</code> に <code>date</code> / <code>user_id</code> がないため、PUT で移動できません。作り直しが必要です</td></tr><tr><td><strong>編集リストは500件まで</strong></td><td><code>edit.py</code> が <code>limit=500</code> で日付一覧を取ります</td></tr><tr><td><strong>4タブは常に全部動く</strong></td><td>見えていないタブの API 呼び出しも毎回走ります</td></tr><tr><td><strong><code>created_at</code> は初回のみ</strong></td><td>upsert しても更新されません</td></tr><tr><td><strong>ID 146 の境界</strong></td><td>過去データの時刻表示は <code>LEGACY_UTC_MAX_RECORD_ID</code> に依存します。変更すると9時間ずれます</td></tr></tbody></table></div>
+<h3 id="変更するときに触る場所">変更するときに触る場所</h3>
+<p><strong>測定項目を1つ増やす場合:</strong></p>
+<ol><li><code>biolog_api/schemas.py</code> の <code>HealthRecordCreate</code> と <code>HealthRecordUpdate</code> の両方</li><li><code>biolog_api/write_repository.py</code> の INSERT 文・<code>ON CONFLICT</code> 節・<code>_ALLOWED</code></li><li><code>biolog_api/biocore.py</code> の <code>HEALTH_RECORD_COLUMNS</code></li><li><code>biolog_api/migrations/versions/</code> に新しい <code>migrate_002_*.py</code> を追加（既存ファイルは編集しない）</li><li><code>biolog_streamlit/form_fields.py</code> の <code>MEASUREMENT_FIELDS</code>（順序とグループに注意）</li><li><code>biolog_streamlit/views/list_view.py</code> の列名マップと <code>priority</code></li><li>必要なら <code>biolog_streamlit/charts.py</code>、<code>views/summary.py</code></li><li><code>tests/test_streamlit_payloads.py</code> の順序テストの期待値</li></ol>
+<p><strong>やってはいけないこと:</strong></p>
+<ul><li><code>PRAGMA journal_mode=WAL</code> への変更</li><li><code>db_manager.py</code> を経由しない <code>sqlite3.connect()</code></li><li>worker の複数スレッド化、Queue の複数化</li><li><code>lifespan</code> へのマイグレーション処理の追加</li><li>Streamlit からの DB 直接アクセス</li><li><code>unsafe_allow_html</code> / <code>st.html</code> の使用箇所を増やすこと</li><li>ログへの健康値・識別子の生出力</li></ul>
+<p>いずれも回帰テストか <code>CLAUDE.md</code> のルールで明示的に禁止されています。</p>
+<h3 id="技術的な注記">技術的な注記</h3>
+<p>以下はコードを読んで確認した事実です。現時点で不具合として観測されているものではありませんが、把握しておくと調査時に役立ちます。</p>
+<ul><li><strong><code>create_record</code> は <code>async def</code></strong> です。FastAPI では <code>async def</code> のエンドポイントはイベントループ上で直接実行されるため、<code>_enqueue_and_wait</code> の最大30秒のブロッキング待機がループを占有します。<code>update_record</code> / <code>delete_record</code> は同期 <code>def</code> なのでスレッドプールで動きます。単独利用では表面化しませんが、同時アクセス時は他のリクエスト（GET 含む）が待たされる構造です。</li><li><strong><code>api.py</code> の <code>from db_manager import get_connection</code></strong> は <code>api.py</code> 内で使われていません。ただし <code>biocore</code> 経由でも <code>db_manager</code> は読み込まれるため、<code>DATABASE_PATH</code> 未設定時の起動失敗という副作用は変わりません。</li><li><strong><code>preprocess.py</code> の <code>blood_pressure</code> は、有効な2つの数値へ変換できない場合に黙って無視されます。</strong> 整数項目の型変換失敗が 422 になるのとは扱いが異なります。失敗経路は2種類あります。</li><li><strong>区切り後の要素数が2でない</strong>場合（<code>&quot;110&quot;</code> は1個、<code>&quot;110/75/60&quot;</code> は3個）は <code>if len(parts) == 2:</code> に入らず、何もしません。</li><li><strong>要素数は2だが数値変換できない</strong>場合（<code>&quot;/75&quot;</code> は <code>[&quot;&quot;, &quot;75&quot;]</code>）は <code>except (ValueError, TypeError): pass</code> で握りつぶします。</li><li><strong>片方だけ変換できる場合、その片方は設定されます。</strong> <code>&quot;110/&quot;</code> は <code>[&quot;110&quot;, &quot;&quot;]</code> となり、<code>setdefault</code> が順に評価されるため <code>systolic_bp</code> に 110 が入った後で2つ目が例外になり、<code>diastolic_bp</code> だけが未設定で進みます。</li><li><strong>血圧分解側の <code>except</code> は <code>OverflowError</code> を捕捉していません。</strong> 400桁の数字列のような入力は <code>float()</code> で <code>inf</code> になり <code>int()</code> で <code>OverflowError</code> を送出して 500 になります（記号は事前に除去されるため <code>&quot;1e309&quot;</code> 表記は到達しませんが、桁数だけで到達します）。整数項目側と同じ対応を入れるかは未決です。</li><li><strong>数値レンジの CHECK 制約は DB にありません。</strong> 範囲の担保は API 層（Pydantic）のみです。</li></ul>
+<hr>
+<h2 id="関連資料">関連資料</h2>
+<div class="table-wrap"><table><thead><tr><th scope="col">ファイル</th><th scope="col">内容</th></tr></thead><tbody><tr><td><a href="spec.md">spec.md</a></td><td>機能仕様書。「何ができるか」</td></tr><tr><td><a href="slides.html">slides.html</a></td><td>構成スライド</td></tr><tr><td><code>CLAUDE.md</code>（リポジトリ直下）</td><td>開発ルールと BioLog 固有の不変条件（開発リポジトリのみ・非公開）</td></tr><tr><td><a href="../biolog_streamlit/仕様書.md">biolog_streamlit/仕様書.md</a></td><td>設計思想・データフロー</td></tr><tr><td><a href="../biolog_streamlit/操作説明書.html">biolog_streamlit/操作説明書.md</a></td><td>画面操作</td></tr><tr><td><a href="../biolog_api/skills.md">biolog_api/skills.md</a></td><td>API リファレンス・curl 集</td></tr><tr><td><a href="../README.html">README.md</a></td><td>セットアップと運用</td></tr><tr><td><a href="../CHANGELOG.md">CHANGELOG.md</a></td><td>全変更履歴</td></tr><tr><td><a href="NETWORK_ISSUE_DIAGNOSTICS.md">NETWORK_ISSUE_DIAGNOSTICS.md</a></td><td>Streamlit の &quot;Network issue&quot; 調査手順</td></tr><tr><td><code>GITHUB_PUBLISHING_PROCEDURE.md</code></td><td>公開手順（開発リポジトリのみ・非公開）</td></tr></tbody></table></div>
+</main><footer class="doc-footer">このHTMLは対応するMarkdown原本（<a href="CODE_REFERENCE.md">docs/CODE_REFERENCE.md</a>）を閲覧しやすく表示するための文書です。</footer></body></html>
