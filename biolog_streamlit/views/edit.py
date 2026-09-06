@@ -6,8 +6,10 @@ from cache import clear_health_caches
 from config import LEGACY_UTC_MAX_RECORD_ID, USER_IDS, USER_LABELS
 from form_components import (
     accept_latest_measurements,
+    accept_latest_text,
     render_measurement_inputs,
     sync_edit_measurement_state,
+    sync_edit_text_state,
 )
 from form_fields import MEASUREMENT_FIELDS
 from payloads import build_update_payload
@@ -30,6 +32,21 @@ def _legacy_utc_max_record_id() -> int:
     return int(metadata["legacy_utc_max_record_id"])
 
 
+def _edit_dates_for_user(user_id: str) -> list[str] | None:
+    dates = set()
+    for offset in range(0, 10001, 500):
+        page = _api_get_with_error(
+            "/api/health/records",
+            params={"user_id": user_id, "limit": 500, "offset": offset},
+        )
+        if page is None:
+            return None
+        dates.update(record["date"] for record in page)
+        if len(page) < 500:
+            break
+    return sorted(dates, reverse=True)
+
+
 def render_edit():
     st.subheader("修正・削除")
 
@@ -42,13 +59,11 @@ def render_edit():
     )
 
     # ── 登録済み日付一覧を取得 ──
-    edit_records_list = _api_get_with_error(
-        "/api/health/records",
-        params={"user_id": edit_user, "limit": 500},
-    ) or []
-    edit_dates = sorted({r["date"] for r in edit_records_list}, reverse=True)
+    edit_dates = _edit_dates_for_user(edit_user)
 
-    if not edit_dates:
+    if edit_dates is None:
+        pass  # The API error was displayed by _api_get_with_error.
+    elif not edit_dates:
         st.info(f"{USER_LABELS[edit_user]}の登録済みデータがありません")
     else:
         edit_date = st.selectbox(
@@ -69,16 +84,23 @@ def render_edit():
         else:
             rec = current_for_edit
             edit_key_prefix = f"edit_{edit_user}_{edit_date}"
-            conflicts = sync_edit_measurement_state(
+            measurement_conflicts = sync_edit_measurement_state(
                 st.session_state,
                 edit_key_prefix,
                 rec,
             )
+            text_conflicts = sync_edit_text_state(st.session_state, edit_key_prefix, rec)
+            conflicts = measurement_conflicts + text_conflicts
             if conflicts:
                 labels = {
                     field.name: field.label
                     for field in MEASUREMENT_FIELDS
                 }
+                labels.update({
+                    "memo": "メモ",
+                    "meal_detail": "食事ログ",
+                    "activity_log": "行動ログ",
+                })
                 conflict_labels = "、".join(labels[name] for name in conflicts)
                 st.warning(
                     f"外部更新と未保存の編集が競合しています: {conflict_labels}。"
@@ -92,7 +114,10 @@ def render_edit():
                         st.session_state,
                         edit_key_prefix,
                         rec,
-                        conflicts,
+                        measurement_conflicts,
+                    )
+                    accept_latest_text(
+                        st.session_state, edit_key_prefix, rec, text_conflicts,
                     )
                     st.rerun()
 
@@ -102,14 +127,14 @@ def render_edit():
                     edit_key_prefix,
                     rec,
                 )
-                edit_memo = st.text_input("メモ", value=rec.get("memo") or "")
+                edit_memo = st.text_input("メモ", key=f"{edit_key_prefix}_memo")
                 edit_meal_detail = st.text_area(
                     "食事ログ",
-                    value=rec.get("meal_detail") or ""
+                    key=f"{edit_key_prefix}_meal_detail",
                 )
                 edit_activity_log = st.text_area(
                     "行動ログ",
-                    value=rec.get("activity_log") or ""
+                    key=f"{edit_key_prefix}_activity_log",
                 )
                 update_btn = st.form_submit_button("更新")
 

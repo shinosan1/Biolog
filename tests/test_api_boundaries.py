@@ -1,6 +1,8 @@
 import asyncio
 import importlib
 import sys
+import threading
+import time
 
 import pytest
 from fastapi import HTTPException
@@ -121,3 +123,47 @@ def test_create_accepts_float_valued_integer_fields(tmp_path, monkeypatch):
     assert enqueued["operation"] == "insert"
     assert enqueued["payload"]["pulse"] == 72
     assert enqueued["payload"]["bmr"] == 1400
+
+
+def test_slow_write_does_not_block_another_create_request(tmp_path, monkeypatch):
+    api = _load_api(tmp_path, monkeypatch)
+    started = threading.Event()
+    release = threading.Event()
+
+    def fake_enqueue(operation, payload):
+        if payload["request_id"] == "slow":
+            started.set()
+            release.wait(timeout=3)
+        return {"status": "success", "id": 1}
+
+    monkeypatch.setattr(api, "_enqueue_and_wait", fake_enqueue)
+
+    class PayloadRequest:
+        def __init__(self, request_id):
+            self.request_id = request_id
+
+        async def json(self):
+            return {
+                "request_id": self.request_id, "date": "2026-09-30",
+                "user_id": "self", "weight": 61.2,
+            }
+
+    async def run_both():
+        slow = asyncio.create_task(api.create_record(PayloadRequest("slow")))
+        assert await asyncio.to_thread(started.wait, 1)
+        quick = await asyncio.wait_for(
+            api.create_record(PayloadRequest("quick")), timeout=1,
+        )
+        assert quick["id"] == 1
+        release.set()
+        await slow
+
+    timer = threading.Timer(3, release.set)
+    timer.start()
+    beginning = time.monotonic()
+    try:
+        asyncio.run(run_both())
+        assert time.monotonic() - beginning < 2
+    finally:
+        release.set()
+        timer.cancel()

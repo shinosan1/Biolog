@@ -6,6 +6,7 @@ from cache import current_data_version, fetch_range_data
 from charts import plot_blood_pressure, plot_metric
 
 
+@st.fragment(run_every="10s")
 def render_graph(selected_users: list, date_start, date_end):
     st.subheader("時系列グラフ（複数ユーザー比較）")
 

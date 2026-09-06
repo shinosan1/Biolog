@@ -1,7 +1,11 @@
 from pathlib import Path
 import importlib
+import ast
+from datetime import date
+from types import SimpleNamespace
 
 import pandas as pd
+import pytest
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -25,6 +29,92 @@ def test_sidebar_explains_automatic_refresh():
     assert 'st.button("更新")' in source
     assert "clear_health_caches()" in source
     assert "約10秒ごとに自動更新" in source
+
+
+def test_manual_filter_period_survives_midnight():
+    from filter_state import initialize_date_filters
+
+    state = {}
+    initialize_date_filters(state, date(2026, 9, 28))
+    state["filter_date_start"] = date(2026, 9, 1)
+    state["filter_date_end"] = date(2026, 9, 20)
+    state["filter_start_manual"] = True
+    state["filter_end_manual"] = True
+
+    initialize_date_filters(state, date(2026, 9, 29))
+
+    assert state["filter_date_start"] == date(2026, 9, 1)
+    assert state["filter_date_end"] == date(2026, 9, 20)
+
+
+def test_untouched_filter_period_tracks_jst_midnight():
+    from filter_state import initialize_date_filters
+
+    state = {}
+    initialize_date_filters(state, date(2026, 9, 28))
+    initialize_date_filters(state, date(2026, 9, 29))
+
+    assert state["filter_date_start"] == date(2026, 8, 30)
+    assert state["filter_date_end"] == date(2026, 9, 29)
+
+
+@pytest.mark.parametrize("manual", [False, True])
+def test_periodic_sidebar_fragment_requests_full_rerun_at_midnight(manual):
+    from filter_state import initialize_date_filters
+
+    source = _read("biolog_streamlit/streamlit_app.py")
+    module = ast.parse(source)
+    function = next(
+        node for node in module.body
+        if isinstance(node, ast.FunctionDef) and node.name == "render_refresh_caption"
+    )
+    assert ast.unparse(function.decorator_list[0]) == "st.fragment(run_every='10s')"
+    sidebar = next(
+        node for node in module.body
+        if isinstance(node, ast.With) and ast.unparse(node.items[0].context_expr) == "st.sidebar"
+    )
+    assert any(
+        isinstance(node, ast.Expr) and ast.unparse(node.value) == "render_refresh_caption()"
+        for node in sidebar.body
+    )
+
+    state = {}
+    initialize_date_filters(state, date(2026, 9, 30))
+    if manual:
+        state.update({
+            "filter_date_start": date(2026, 9, 10),
+            "filter_date_end": date(2026, 9, 20),
+            "filter_start_manual": True,
+            "filter_end_manual": True,
+        })
+
+    class FullRerun(Exception):
+        pass
+
+    fake_st = SimpleNamespace(
+        session_state=state,
+        fragment=lambda **kwargs: lambda fn: fn,
+        rerun=lambda: (_ for _ in ()).throw(FullRerun()),
+        caption=lambda text: None,
+    )
+    clock = SimpleNamespace(now=lambda tz: SimpleNamespace(date=lambda: date(2026, 10, 1)))
+    namespace = {"st": fake_st, "datetime": clock, "JST": object()}
+    exec(compile(ast.Module(body=[function], type_ignores=[]), "streamlit_app.py", "exec"), namespace)
+
+    with pytest.raises(FullRerun):
+        namespace["render_refresh_caption"]()
+
+    # The requested full rerun reinitializes sidebar widgets and view arguments.
+    initialize_date_filters(state, date(2026, 10, 1))
+    assert state["filter_date_start"] == (date(2026, 9, 10) if manual else date(2026, 9, 1))
+    assert state["filter_date_end"] == (date(2026, 9, 20) if manual else date(2026, 10, 1))
+    namespace["render_refresh_caption"]()
+
+
+def test_graph_and_summary_refresh_like_list():
+    for path in ("graph.py", "list_view.py", "summary.py"):
+        source = _read(f"biolog_streamlit/views/{path}")
+        assert '@st.fragment(run_every="10s")' in source
 
 
 def test_no_streamlit_arrow_table_widgets_remain_in_application():

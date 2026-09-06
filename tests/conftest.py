@@ -41,6 +41,13 @@ def temp_db_modules(tmp_path, monkeypatch):
             "migrations.versions.migrate_002_request_history_and_metadata"
         )
         migration.run(conn)
+        conn.execute(
+            "CREATE TABLE schema_migrations (id TEXT PRIMARY KEY, applied_at TEXT NOT NULL)"
+        )
+        conn.executemany(
+            "INSERT INTO schema_migrations (id, applied_at) VALUES (?, '2026-09-30')",
+            [("001",), ("002",)],
+        )
         conn.commit()
     finally:
         conn.close()

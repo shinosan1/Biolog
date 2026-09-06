@@ -5,6 +5,7 @@ from cache import current_data_version, fetch_latest
 from config import USER_IDS, USER_LABELS
 
 
+@st.fragment(run_every="10s")
 def render_summary():
     st.subheader("直近データ — 家族全員")
     card_cols = st.columns(3)

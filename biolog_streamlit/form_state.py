@@ -6,7 +6,7 @@ _MISSING = object()
 
 
 @dataclass(frozen=True)
-class MeasurementMerge:
+class FieldMerge:
     values: dict
     baseline: dict
     conflicts: tuple[str, ...]
@@ -16,17 +16,17 @@ def _same_value(left, right) -> bool:
     return type(left) is type(right) and left == right
 
 
-def merge_measurement_values(
+def merge_field_values(
     field_names: Iterable[str],
     api_values: Mapping[str, object],
     previous_api_values: Mapping[str, object] | None,
     widget_values: Mapping[str, object],
-) -> MeasurementMerge:
+) -> FieldMerge:
     """Three-way merge API values into edit widget state."""
     names = tuple(field_names)
     if previous_api_values is None:
         values = {name: api_values.get(name) for name in names}
-        return MeasurementMerge(values, dict(values), ())
+        return FieldMerge(values, dict(values), ())
 
     values = {}
     baseline = {}
@@ -50,4 +50,9 @@ def merge_measurement_values(
             baseline[name] = previous_api
             conflicts.append(name)
 
-    return MeasurementMerge(values, baseline, tuple(conflicts))
+    return FieldMerge(values, baseline, tuple(conflicts))
+
+
+# Keep the existing measurement API for callers and tests.
+MeasurementMerge = FieldMerge
+merge_measurement_values = merge_field_values

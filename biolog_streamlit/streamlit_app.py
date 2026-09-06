@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import datetime
 
 import seaborn as sns
 import streamlit as st
@@ -6,11 +6,13 @@ import streamlit as st
 from api_client import ApiClientError, api_get
 from cache import clear_health_caches
 from config import USER_IDS, USER_LABELS
+from filter_state import initialize_date_filters
 from time_utils import JST
 from ui_style import inject_number_input_styles
 from views.create import render_create
 from views.edit import render_edit
 from views.graph import render_graph
+from views.import_view import render_csv_import
 from views.list_view import render_list
 from views.summary import render_summary
 
@@ -29,6 +31,13 @@ def render_health_status(response: dict) -> None:
         st.error("異常 — API は利用できない状態です")
 
 
+@st.fragment(run_every="10s")
+def render_refresh_caption() -> None:
+    if st.session_state.get("filter_defaults_today") != datetime.now(JST).date():
+        st.rerun()
+    st.caption("※ データ一覧・グラフ・サマリーは約10秒ごとに自動更新されます。必要に応じて「更新」を押してください。")
+
+
 # ── サイドバー ──────────────────────────────────────────
 with st.sidebar:
     st.header("フィルター")
@@ -39,16 +48,22 @@ with st.sidebar:
         format_func=lambda x: USER_LABELS[x],
     )
 
-    today = date.today()
-    date_start = st.date_input("開始日", value=today - timedelta(days=30))
-    date_end = st.date_input("終了日", value=datetime.now(JST).date())
+    initialize_date_filters(st.session_state, datetime.now(JST).date())
+    date_start = st.date_input(
+        "開始日", key="filter_date_start",
+        on_change=lambda: st.session_state.update(filter_start_manual=True),
+    )
+    date_end = st.date_input(
+        "終了日", key="filter_date_end",
+        on_change=lambda: st.session_state.update(filter_end_manual=True),
+    )
 
     st.divider()
     if st.button("更新"):
         clear_health_caches()
         st.rerun()
 
-    st.caption("※ データ一覧は約10秒ごとに自動更新されます。必要に応じて「更新」を押してください。")
+    render_refresh_caption()
 
     if st.button("ヘルスチェック"):
         try:
@@ -84,6 +99,7 @@ with tab_graph:
 # ────────────────────────────────
 with tab_list:
     render_list(selected_users, date_start, date_end)
+    render_csv_import()
 
 
 # ────────────────────────────────

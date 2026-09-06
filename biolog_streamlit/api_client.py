@@ -48,6 +48,8 @@ def api_get(path: str, params: dict = None, suppress_404: bool = False):
         return r.json()
     except requests.HTTPError as e:
         raise ApiClientError(_detail_from_http_error(e), e.response.status_code if e.response is not None else None)
+    except (requests.ConnectionError, requests.Timeout) as e:
+        raise ApiClientError(str(e)) from e
 
 
 def api_post(path: str, body: dict):

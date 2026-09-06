@@ -6,6 +6,7 @@ API 呼び出しだけを差し替える。Session State の残留や、画面�
 """
 
 import sys
+from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
@@ -47,14 +48,26 @@ _HEADER = "import streamlit as st\n"
 _CREATE_BODY = """
 import views.create as create
 from api_client import ApiClientError
+from datetime import date
+
+create.current_jst_date = lambda: date.fromisoformat(st.session_state.get("today_override", "2026-09-28"))
 
 if "posted" not in st.session_state:
     st.session_state["posted"] = []
+if "attempts" not in st.session_state:
+    st.session_state["attempts"] = []
 
 
 def fake_post(path, body):
+    st.session_state["attempts"].append(dict(body))
     if st.session_state.get("api_mode") == "error":
-        raise ApiClientError("registration failed", 500)
+        raise ApiClientError("registration failed", 422)
+    if st.session_state.get("api_mode") == "unknown_once" and len(st.session_state["attempts"]) == 1:
+        raise ApiClientError("connection lost")
+    if st.session_state.get("api_mode") == "worker_timeout_once" and len(st.session_state["attempts"]) == 1:
+        raise ApiClientError("Write worker did not respond in time", 503)
+    if st.session_state.get("api_mode") == "queue_full":
+        raise ApiClientError("Write queue is full, try again later", 503)
     st.session_state["posted"].append({"path": path, "body": body})
     return {"message": "registered", "id": 10}
 
@@ -99,10 +112,12 @@ def fake_get(path, params=None, suppress_404=False):
     if path == "/api/health/metadata":
         return {"legacy_utc_max_record_id": 0}
     if path == "/api/health/records":
-        return [
-            copy.deepcopy(r) for r in records.values()
-            if r["user_id"] == params["user_id"]
-        ]
+        matching = sorted(
+            (r for r in records.values() if r["user_id"] == params["user_id"]),
+            key=lambda r: (r["date"], r["id"]), reverse=True,
+        )
+        offset = params.get("offset", 0)
+        return [copy.deepcopy(r) for r in matching[offset:offset + params["limit"]]]
     if path == "/api/health/record/day":
         for r in records.values():
             if r["user_id"] == params["user_id"] and r["date"] == params["date"]:
@@ -138,6 +153,17 @@ edit.api_get = fake_get
 edit.api_put = fake_put
 edit.api_delete = fake_delete
 edit.clear_health_caches = lambda: None
+edit.render_edit()
+"""
+
+_GET_ERROR_BODY = """
+import views.edit as edit
+from api_client import ApiClientError
+
+def fail_get(*args, **kwargs):
+    raise ApiClientError("connection lost")
+
+edit.api_get = fail_get
 edit.render_edit()
 """
 
@@ -226,6 +252,53 @@ def test_create_form_keeps_the_input_when_the_api_call_fails():
     assert _create_snapshot(app) == filled
 
 
+@pytest.mark.parametrize("api_mode", ["unknown_once", "worker_timeout_once"])
+def test_unknown_create_result_retries_exact_same_payload(api_mode):
+    app = _app(_CREATE_BODY)
+    app.session_state["api_mode"] = api_mode
+    _fill_create_form(app)
+    original = _create_snapshot(app)
+
+    _button(app, "登録").click().run()
+
+    assert len(app.session_state["attempts"]) == 1
+    assert "登録結果を確認できませんでした" in app.warning[0].value
+    assert app.session_state["pending_create_request"] == app.session_state["attempts"][0]
+    assert _create_snapshot(app) == original
+
+    app.text_input(key="create_memo").set_value("changed after timeout").run()
+    _button(app, "前回の登録を再試行").click().run()
+
+    assert app.session_state["attempts"][1] == app.session_state["attempts"][0]
+    assert app.session_state["posted"][0]["body"] == app.session_state["attempts"][0]
+    assert "pending_create_request" not in app.session_state
+    assert not app.exception
+
+
+def test_known_queue_rejection_does_not_hold_a_pending_request():
+    app = _app(_CREATE_BODY)
+    app.session_state["api_mode"] = "queue_full"
+
+    _button(app, "登録").click().run()
+
+    assert "pending_create_request" not in app.session_state
+    assert any("登録失敗" in error.value for error in app.error)
+
+
+def test_selected_create_date_survives_midnight_and_is_posted_unchanged():
+    app = _app(_CREATE_BODY)
+    app.date_input(key="create_date_input").set_value(date(2026, 9, 20)).run()
+    app.session_state["today_override"] = "2026-09-29"
+    app.run()
+
+    assert app.date_input(key="create_date_input").value == date(2026, 9, 20)
+    _button(app, "登録").click().run()
+
+    assert app.session_state["posted"][0]["body"]["date"] == "2026-09-20"
+    assert app.date_input(key="create_date_input").value == date(2026, 9, 29)
+    assert not app.exception
+
+
 # ── 修正・削除 ──────────────────────────────────────────────
 
 def test_switching_users_moves_the_date_selection_into_the_new_user_options():
@@ -241,6 +314,24 @@ def test_switching_users_moves_the_date_selection_into_the_new_user_options():
     assert app.session_state["edit_date_select"] == "2026-07-10"
     assert app.text_input[0].value == "memo-F"
     assert not app.warning
+    assert not app.exception
+
+
+def test_edit_dates_include_records_after_the_first_500():
+    app = _app(_EDIT_BODY)
+    oldest = date(2024, 1, 1)
+    for offset in range(501):
+        record_id = 1000 + offset
+        app.session_state["records"][record_id] = {
+            "id": record_id,
+            "user_id": "self",
+            "date": (oldest + timedelta(days=offset)).isoformat(),
+        }
+
+    app.run()
+
+    assert oldest.isoformat() in app.selectbox(key="edit_date_select").options
+    assert ("GET", "/api/health/records", {"user_id": "self", "limit": 500, "offset": 500}) in app.session_state["api_calls"]
     assert not app.exception
 
 
@@ -287,4 +378,36 @@ def test_update_targets_the_record_on_screen_after_switching_dates_back():
     assert body["memo"] == "memo-A-edited"
     assert body["weight"] == 65.0
     assert app.session_state["records"][12]["memo"] == "memo-B"
+    assert not app.exception
+
+
+def test_external_text_change_preserves_draft_and_accepts_latest():
+    app = _app(_EDIT_BODY)
+    prefix = "edit_self_2026-08-23"
+    app.text_input(key=f"{prefix}_memo").set_value("my memo")
+    app.text_area(key=f"{prefix}_meal_detail").set_value("my meal")
+    app.text_area(key=f"{prefix}_activity_log").set_value("my activity")
+    app.run()
+
+    app.session_state["records"][11]["memo"] = "external memo"
+    app.session_state["records"][11]["meal_detail"] = "external meal"
+    app.session_state["records"][11]["activity_log"] = "external activity"
+    app.run()
+
+    assert app.text_input(key=f"{prefix}_memo").value == "my memo"
+    assert app.text_area(key=f"{prefix}_meal_detail").value == "my meal"
+    assert app.text_area(key=f"{prefix}_activity_log").value == "my activity"
+    assert "外部更新と未保存の編集が競合" in app.warning[0].value
+
+    _button(app, "競合項目を最新値に置換").click().run()
+    assert app.text_input(key=f"{prefix}_memo").value == "external memo"
+    assert app.text_area(key=f"{prefix}_meal_detail").value == "external meal"
+    assert app.text_area(key=f"{prefix}_activity_log").value == "external activity"
+    assert not app.exception
+
+
+def test_get_connection_failure_is_shown_as_api_error():
+    app = _app(_GET_ERROR_BODY)
+
+    assert any("API エラー: connection lost" in error.value for error in app.error)
     assert not app.exception

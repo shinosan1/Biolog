@@ -34,6 +34,44 @@ SQLite ファイル 1 つで完結し、標準構成では外部サービスへ�
 
 ---
 
+## コード詳細・用語解説
+
+BioLog の内部構造や専門用語を先に確認したい場合は、ここから確認できます。詳細版は各リンク先にあります。
+
+- **コード詳細**: [docs/CODE_REFERENCE.md](docs/CODE_REFERENCE.md) — v1.7.5 を基にした構成・処理フローの解説（一部追随済み）。以後の変更は [CHANGELOG.md](CHANGELOG.md) を参照
+- **用語解説**: [この README の用語解説](#用語解説) — BioLog 固有用語、Web/API、Python、SQLite、Docker などを初心者向けに説明
+- **仕様書**: [biolog_streamlit/仕様書.md](biolog_streamlit/仕様書.md) — アーキテクチャ、データフロー、整合性モデル
+- **操作説明書**: [biolog_streamlit/操作説明書.md](biolog_streamlit/操作説明書.md) — 画面操作と日常利用の手順
+- **API リファレンス**: [biolog_api/skills.md](biolog_api/skills.md) — API と curl の利用例
+
+### 主要コード構成
+
+| 場所 | 役割 |
+|---|---|
+| `biolog_streamlit/` | 画面、入力フォーム、一覧、グラフ、CSV入出力UI |
+| `biolog_api/api.py` | Streamlit から利用する FastAPI エンドポイント |
+| `biolog_api/worker.py` | Queue から書き込み処理を受け取る単一 Writer ワーカー |
+| `biolog_api/write_repository.py` | SQLite への登録・更新・削除・CSVインポート書き込み |
+| `biolog_api/csv_import.py` | CSVの解析、検証、インポート用データへの変換 |
+| `biolog_api/migrations/` | 新規DB・既存DBのスキーマ更新 |
+| `tests/` | API、DB、UIロジック、CSV、migration等の回帰テスト |
+
+### 先に知っておく用語
+
+| 用語 | BioLogでの意味 |
+|---|---|
+| **Streamlit** | ブラウザに表示する画面部分 |
+| **FastAPI** | UIからの要求を受け取り、読み書き処理へ渡すAPI部分 |
+| **SQLite** | 健康記録を保存するローカルDB。標準では `./data/biolog.db` |
+| **単一 Writer** | DBへの書き込みを1本のWorkerに集約して競合を避ける方式 |
+| **UPSERT** | 同じユーザー・同じ日付がなければ追加、あれば更新する処理 |
+| **migration** | 既存データを保ちながらDB構造を新しい版へ更新する仕組み |
+| **冪等性 / request_id** | 同じ要求の再送で重複書き込みや巻き戻りを起こさないための仕組み |
+
+詳しい説明は下部の [用語解説](#用語解説) を参照してください。
+
+---
+
 ## 主な機能
 
 - 家族メンバー（self / father / mother）ごとの健康データを日次記録
@@ -41,8 +79,40 @@ SQLite ファイル 1 つで完結し、標準構成では外部サービスへ�
 - 食事ログ / 行動ログ / メモ（長文可、一覧で expander 展開）
 - 時系列グラフ（matplotlib、複数ユーザー比較）
 - CSV エクスポート（UTF-8 BOM 付き、Excel 文字化けなし）
+- CSV インポート（出力CSVの追加・更新による復元。実行前プレビュー付き）
 - JST 基準の日付補完（Docker UTC 環境でも正しく動作）
 - migration 機構（CREATE TABLE + ALTER 併存で新規/既存両環境対応）
+
+### CSV インポート
+
+「一覧」画面の「CSV インポート」でファイルを選び、「内容を解析」で予定件数とエラーを確認してから「インポートを実行」します。サイドバーのフィルターとは独立してCSV全体を扱います。更新前の状態を残す場合は、先に現在のデータをCSV出力してください。
+
+- BioLogの出力列を持つUTF-8／BOM付きCSVに対応します（CSV本文5 MiB・5,000データ行まで、空行は除外）。
+- 同じユーザー・対象日はCSVの状態で更新します。測定値の空欄はNULL、メモ・食事ログ・行動ログの空欄は空文字になり、ログは追記しません。CSVにないレコードは変更しません。
+- 不正行や同一ユーザー・対象日の重複がある場合は取り込みません。実行途中のDBエラーでは全件ロールバックします。予定件数は実行時に再判定し、値が同じ行はスキップします。
+- `id`・`記録日時`・`created_at`・`request_id`は取り込みません。既存の識別情報・記録日時を維持し、新規行の記録日時は取り込み時刻になります。
+- 数式対策の先頭アポストロフィを戻す選択肢があります。元から同じ文字で始まる値とは区別できないため、その場合は選択を解除してください。旧データでも現行の文字数上限を超えるログは取り込めません。自動切り詰めは行いません。
+- 通信タイムアウトでは書き込み結果が未確認となるため、一覧を更新して確認してください。自動再試行は行いません。
+
+---
+
+## ドキュメント
+
+| ファイル | 内容 |
+|---|---|
+| [docs/CODE_REFERENCE.md](docs/CODE_REFERENCE.md) | **コード詳細・現行実装の解説** |
+| [用語解説](#用語解説) | **README 内の技術用語・BioLog 固有用語の説明** |
+| [biolog_streamlit/操作説明書.md](biolog_streamlit/操作説明書.md) | 画面操作手順 |
+| [biolog_streamlit/仕様書.md](biolog_streamlit/仕様書.md) | アーキテクチャ・データフロー・整合性モデル |
+| [biolog_api/skills.md](biolog_api/skills.md) | API リファレンス（curl 集） |
+| [CHANGELOG.md](CHANGELOG.md) | バージョン履歴 |
+| [LICENSE.md](LICENSE.md) | ライセンス（MIT License） |
+| [PRIVACY_POLICY.md](PRIVACY_POLICY.md) | プライバシーポリシー |
+| [TERMS_OF_USE.md](TERMS_OF_USE.md) | 利用規約 |
+| [DISCLAIMER.md](DISCLAIMER.md) | 免責事項 |
+| [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) | サードパーティライセンス |
+| [SHA256SUMS.txt](SHA256SUMS.txt) | 公開対象ファイルの SHA-256 一覧（機械検証用） |
+| [SHA256.md](SHA256.md) | SHA-256 一覧（閲覧用） |
 
 ---
 
@@ -289,10 +359,11 @@ BIOLOG_DATA_DIR=/var/lib/biolog
 - ✅ 新規登録成功後もフォームに前回の入力値が残る → v1.7.6 で修正（登録成功時のみリセット、エラー時は入力を維持）
 - ✅ 同一ユーザー・同一日付の再登録で API が `id=0` を返す → v1.7.6 で修正（UPSERT 後に実レコード ID を取得）
 - ✅ v1.5.7 のキャッシュ version 機構が v1.6.0 の分割で失われていた退行 → v1.7.8 で復元（per-function clear / TTL と併用）
+- ✅ 日またぎ時の新規登録日・期間表示、編集中文字列の消失、API通信障害、書き込み待機、結果不明の再試行、501件目以降の編集、DB起動判定 → v1.8.1 で修正
+- ✅ migration lock 残存時に runner が正常終了して API が起動する問題 → v1.8.1 で起動を停止
 
 ### Open（既知の未解決）
-- ⚠ **migration_lock の stale 残存**：コンテナ強制終了で finally が走らないとロックが残る。手動 `DELETE FROM migration_lock WHERE id = 1` で復旧
-- ⚠ **runner.py の lock 競合時 exit 0 仕様**：lock 残存時 runner は何もせず exit 0 → schema 未整備のまま API が起動する可能性あり
+- ⚠ **migration_lock の stale 残存**：コンテナ強制終了で finally が走らないとロックが残る。APIは起動せず、原因確認後に手動 `DELETE FROM migration_lock WHERE id = 1` で復旧
 - ⚠ **CHECK 制約未実装**：DB レベル制約は無し、Pydantic 層のみで範囲検証している（DB 直接編集時の弱点）
 - ⚠ **`updated_at` カラム未実装**：UPDATE しても created_at は変わらない。監査ログ用途には不十分
 
@@ -363,25 +434,6 @@ docker compose restart biolog-api
 - L1: biocore.py の `SELECT *` を明示列指定に置換
 
 優先度は低く、現状で実害なし。
-
----
-
-## ドキュメント
-
-| ファイル | 内容 |
-|---|---|
-| [CHANGELOG.md](CHANGELOG.md) | バージョン履歴 |
-| [biolog_streamlit/仕様書.md](biolog_streamlit/仕様書.md) | アーキテクチャ・データフロー・整合性モデル |
-| [biolog_streamlit/操作説明書.md](biolog_streamlit/操作説明書.md) | 画面操作手順 |
-| [biolog_api/skills.md](biolog_api/skills.md) | API リファレンス（curl 集） |
-| [docs/CODE_REFERENCE.md](docs/CODE_REFERENCE.md) | コード解説（現行版） |
-| [LICENSE.md](LICENSE.md) | ライセンス（MIT License） |
-| [PRIVACY_POLICY.md](PRIVACY_POLICY.md) | プライバシーポリシー |
-| [TERMS_OF_USE.md](TERMS_OF_USE.md) | 利用規約 |
-| [DISCLAIMER.md](DISCLAIMER.md) | 免責事項 |
-| [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) | サードパーティライセンス |
-| [SHA256SUMS.txt](SHA256SUMS.txt) | 公開ファイルのSHA-256一覧（機械検証用） |
-| [SHA256.md](SHA256.md) | SHA-256一覧（3拠点比較レポート） |
 
 ---
 
@@ -767,10 +819,9 @@ README の「コンテナ強制終了で finally が走らない」は、
 プログラムが終わるときに残す数値。慣例として **0 は正常終了**、
 0 以外は異常終了を表し、後続の処理はこれを見て続行するか判断する。
 
-README の「runner.py の lock 競合時 exit 0 仕様」は、
-migration の鍵が残っていて何も実行できなかった場合でも
-runner が「正常終了（0）」を返してしまうため、
-表の構造が整っていないまま API が起動してしまう可能性がある、という指摘。
+v1.8.1 以降は migration の鍵が残っていると runner が異常終了し、
+`entrypoint.sh` は API を起動しない。
+鍵が残った理由を確認してから手動で解除する。
 
 #### SyntaxError（構文エラー）
 

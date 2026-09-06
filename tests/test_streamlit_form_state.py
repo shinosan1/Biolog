@@ -1,4 +1,5 @@
 import sys
+from datetime import date
 from pathlib import Path
 
 
@@ -163,7 +164,8 @@ def test_create_measurement_state_keys_match_the_rendered_widget_keys(monkeypatc
     )
 
 
-def test_create_form_state_is_cleared_only_after_a_successful_registration():
+def test_create_form_state_is_cleared_only_after_a_successful_registration(monkeypatch):
+    import views.create as create
     from views.create import (
         CREATE_RESET_FLAG,
         create_form_state_keys,
@@ -177,9 +179,10 @@ def test_create_form_state_is_cleared_only_after_a_successful_registration():
     reset_create_form_state(session_state)
     assert session_state == {**typed, "unrelated": "keep"}
 
+    monkeypatch.setattr(create, "current_jst_date", lambda: date(2026, 9, 29))
     session_state[CREATE_RESET_FLAG] = True
     reset_create_form_state(session_state)
-    assert session_state == {"unrelated": "keep"}
+    assert session_state == {"unrelated": "keep", "create_date_input": date(2026, 9, 29)}
 
 
 def test_external_change_updates_an_unedited_field():
@@ -309,3 +312,27 @@ def test_accept_latest_replaces_only_conflicted_fields():
 
     assert session_state[f"{prefix}_weight"] == 63.5
     assert session_state[f"{prefix}_body_fat"] == 18.0
+
+
+def test_text_edits_survive_external_change_and_can_accept_latest():
+    import form_components
+
+    prefix = "edit_self_2026-09-20"
+    initial = {"memo": "old", "meal_detail": "meal", "activity_log": "walk"}
+    state = {}
+    assert form_components.sync_edit_text_state(state, prefix, initial) == ()
+    state[f"{prefix}_memo"] = "my note"
+    state[f"{prefix}_meal_detail"] = "my meal"
+    state[f"{prefix}_activity_log"] = "my activity"
+
+    updated = {"memo": "other note", "meal_detail": "other meal", "activity_log": "other activity"}
+    conflicts = form_components.sync_edit_text_state(state, prefix, updated)
+
+    assert conflicts == ("memo", "meal_detail", "activity_log")
+    assert [state[f"{prefix}_{name}"] for name in conflicts] == [
+        "my note", "my meal", "my activity",
+    ]
+    form_components.accept_latest_text(state, prefix, updated, ("meal_detail",))
+    assert state[f"{prefix}_meal_detail"] == "other meal"
+    assert state[f"{prefix}_memo"] == "my note"
+    assert state[f"{prefix}_activity_log"] == "my activity"

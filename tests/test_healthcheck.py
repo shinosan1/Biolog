@@ -1,5 +1,9 @@
 import importlib
+import os
+import sqlite3
+import subprocess
 import sys
+from pathlib import Path
 from queue import Queue
 
 
@@ -47,6 +51,50 @@ def test_database_check_is_read_only(temp_db_modules):
 
     assert biocore.check_database() is True
     assert db_path.read_bytes() == before
+
+
+def test_database_check_rejects_empty_database(tmp_path, monkeypatch):
+    api = _load_api(tmp_path, monkeypatch)
+    monkeypatch.setattr(api, "_worker_thread", _ThreadState(True))
+
+    assert api.biocore.check_database() is False
+    assert api.health_check()["status"] == "unhealthy"
+
+
+def test_database_check_rejects_missing_required_migration(temp_db_modules):
+    _, biocore, db_path = temp_db_modules
+    with sqlite3.connect(db_path) as conn:
+        conn.execute("DELETE FROM schema_migrations WHERE id = '002'")
+
+    assert biocore.check_database() is False
+
+
+def test_database_check_rejects_missing_core_table(temp_db_modules):
+    _, biocore, db_path = temp_db_modules
+    with sqlite3.connect(db_path) as conn:
+        conn.execute("DROP TABLE request_history")
+
+    assert biocore.check_database() is False
+
+
+def test_migration_lock_stops_entrypoint_before_api_start(tmp_path):
+    db_path = tmp_path / "locked.db"
+    with sqlite3.connect(db_path) as conn:
+        conn.execute("CREATE TABLE migration_lock (id INTEGER PRIMARY KEY, locked_at TEXT)")
+        conn.execute("INSERT INTO migration_lock VALUES (1, '2026-09-30')")
+
+    api_dir = Path(__file__).resolve().parents[1] / "biolog_api"
+    result = subprocess.run(
+        [sys.executable, str(api_dir / "migrations" / "runner.py")],
+        env={**os.environ, "DATABASE_PATH": str(db_path)},
+        capture_output=True, text=True, check=False,
+    )
+
+    assert result.returncode != 0
+    assert "Migration lock is already held" in result.stderr
+    entrypoint = (api_dir / "entrypoint.sh").read_text(encoding="utf-8")
+    assert "set -e" in entrypoint
+    assert entrypoint.index("python migrations/runner.py") < entrypoint.index("exec uvicorn")
 
 
 def test_metadata_endpoint_returns_database_specific_legacy_boundary(tmp_path, monkeypatch):

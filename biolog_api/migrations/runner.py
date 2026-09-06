@@ -82,7 +82,7 @@ def _load_versions():
 
 def run_all():
     if not _acquire_lock():
-        return
+        raise RuntimeError("Migration lock is already held; API startup must stop")
 
     try:
         conn = sqlite3.connect(DATABASE_PATH, isolation_level=None)

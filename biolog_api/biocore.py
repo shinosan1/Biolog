@@ -39,8 +39,20 @@ def _execute_read(query: str, params=(), *, one: bool = False):
 
 
 def check_database() -> bool:
-    row = _execute_read("SELECT 1 AS ok", one=True)
-    return bool(row and row.get("ok") == 1)
+    try:
+        _execute_read(f"SELECT {HEALTH_RECORD_COLUMNS} FROM health_records LIMIT 1")
+        _execute_read("SELECT request_id, record_id FROM request_history LIMIT 1")
+        metadata = _execute_read(
+            "SELECT value FROM schema_metadata WHERE key = ?",
+            ("legacy_utc_max_record_id",), one=True,
+        )
+        migrations = _execute_read(
+            "SELECT id FROM schema_migrations WHERE id IN (?, ?)",
+            ("001", "002"),
+        )
+    except sqlite3.DatabaseError:
+        return False
+    return metadata is not None and {row["id"] for row in migrations} == {"001", "002"}
 
 
 def get_metadata_value(key: str) -> Optional[str]:
@@ -133,3 +145,17 @@ def get_latest_record(user_id: str) -> Optional[Dict[str, Any]]:
     LIMIT 1
     """
     return _execute_read(query, (user_id,), one=True)
+
+
+def get_records_by_user_dates(keys: list[tuple[str, str]]) -> set[tuple[str, str]]:
+    """Return only the requested import keys, in SQLite-safe parameter batches."""
+    existing = set()
+    for start in range(0, len(keys), 400):
+        batch = keys[start:start + 400]
+        where = " OR ".join("(user_id = ? AND date = ?)" for _ in batch)
+        params = tuple(value for key in batch for value in key)
+        rows = _execute_read(
+            f"SELECT user_id, date FROM health_records WHERE {where}", params
+        )
+        existing.update((row["user_id"], row["date"]) for row in rows)
+    return existing
